@@ -96,6 +96,18 @@ select {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg);
+  min-height: 44px;
+}
+
+/* iOS Safari draws date inputs natively: too wide, too tall, centered text. */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+input[type='date']::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
 }
 
 .card {
