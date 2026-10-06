@@ -326,3 +326,9 @@ input[type='date']::-webkit-date-and-time-value {
   border-radius: 50%;
   background: var(--danger);
 }
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

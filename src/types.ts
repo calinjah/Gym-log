@@ -20,20 +20,28 @@ export type ExerciseEntry = {
   notes: string
 }
 
-export type Session = {
+/** What the workout editor edits: shared by sessions and plans. */
+export type Workout = {
   id: string
   name: string
+  entries: ExerciseEntry[]
+}
+
+/** A workout planned in advance, started from the Workout tab. */
+export type Plan = Workout
+
+export type Session = Workout & {
   startedAt: string // ISO timestamp
   finishedAt: string | null // ISO timestamp, null while in progress
-  entries: ExerciseEntry[]
 }
 
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 1
+  version: 2
   unit: Unit
   customExercises: Exercise[]
+  plans: Plan[]
   sessions: Session[] // finished sessions
   active: Session | null
 }

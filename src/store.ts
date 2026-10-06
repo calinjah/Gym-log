@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { LIBRARY } from './library'
-import type { Data, Exercise, Session } from './types'
+import type { Data, Exercise, ExerciseEntry, Session } from './types'
 
 const KEY = 'gym-data'
 
-const EMPTY: Data = { version: 1, unit: 'kg', customExercises: [], sessions: [], active: null }
+const EMPTY: Data = { version: 2, unit: 'kg', customExercises: [], plans: [], sessions: [], active: null }
 
 export function parseData(json: string): Data {
-  const data = JSON.parse(json) as Data
-  if (data.version !== 1 || !Array.isArray(data.sessions) || !Array.isArray(data.customExercises)) {
+  let data = JSON.parse(json)
+  if (data.version === 1) data = { ...data, version: 2, plans: [] } // v1 had no plans
+  if (data.version !== 2 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
-  return data
+  return data as Data
 }
 
 function load(): Data {
@@ -61,8 +62,14 @@ export function sessionsWithExercise(data: Data, exerciseId: string): Session[] 
 }
 
 export function isExerciseUsed(data: Data, exerciseId: string): boolean {
-  const all = data.active ? [...data.sessions, data.active] : data.sessions
-  return all.some((s) => s.entries.some((e) => e.exerciseId === exerciseId))
+  const all = [...data.sessions, ...data.plans, ...(data.active ? [data.active] : [])]
+  return all.some((w) => w.entries.some((e) => e.exerciseId === exerciseId))
+}
+
+/** Begin a new in-progress workout, starting now, with a copy of the given exercises. */
+export function startSession(d: Data, name: string, entries: ExerciseEntry[]) {
+  if (d.active) throw new Error('A workout is already in progress')
+  d.active = { id: newId(), name, startedAt: new Date().toISOString(), finishedAt: null, entries: structuredClone(entries) }
 }
 
 export function categoriesOf(exercises: Exercise[]): string[] {

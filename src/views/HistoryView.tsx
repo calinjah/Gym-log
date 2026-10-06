@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { SessionEditor } from '../components/SessionEditor'
+import { SessionDateField } from '../components/SessionDateField'
+import { WorkoutEditor } from '../components/WorkoutEditor'
 import { formatDate, formatDuration } from '../format'
-import { exerciseMap, newId, type Update } from '../store'
-import type { Data } from '../types'
+import { exerciseMap, newId, startSession, type Update } from '../store'
+import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update; onRepeat: () => void }
 
@@ -12,6 +13,13 @@ export function HistoryView({ data, update, onRepeat }: Props) {
   const open = data.sessions.find((s) => s.id === openId)
 
   if (open) {
+    const editOpen = (mutate: (s: Session) => void) =>
+      update((d) => {
+        const s = d.sessions.find((x) => x.id === open.id)
+        if (!s) throw new Error(`Session ${open.id} not found`)
+        mutate(s)
+      })
+
     return (
       <>
         <div className="row">
@@ -21,15 +29,7 @@ export function HistoryView({ data, update, onRepeat }: Props) {
             disabled={data.active !== null}
             title={data.active ? 'Finish your current workout first' : undefined}
             onClick={() => {
-              update((d) => {
-                d.active = {
-                  id: newId(),
-                  name: open.name,
-                  startedAt: new Date().toISOString(),
-                  finishedAt: null,
-                  entries: structuredClone(open.entries).map((e) => ({ ...e, notes: '' })),
-                }
-              })
+              update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' }))))
               onRepeat()
             }}
           >
@@ -37,18 +37,18 @@ export function HistoryView({ data, update, onRepeat }: Props) {
           </button>
         </div>
         <p className="muted small">Changes to a past workout are saved automatically.</p>
-        <SessionEditor
-          data={data}
-          update={update}
-          session={open}
-          edit={(mutate) =>
-            update((d) => {
-              const s = d.sessions.find((x) => x.id === open.id)
-              if (!s) throw new Error(`Session ${open.id} not found`)
-              mutate(s)
-            })
-          }
-        />
+        <WorkoutEditor data={data} update={update} workout={open} edit={editOpen}>
+          <SessionDateField session={open} edit={editOpen} />
+        </WorkoutEditor>
+        <button
+          className="wide"
+          onClick={() => {
+            update((d) => void d.plans.push({ id: newId(), name: open.name, entries: structuredClone(open.entries) }))
+            alert('Saved to your plans on the Workout tab.')
+          }}
+        >
+          Save as plan
+        </button>
         <button
           className="danger wide"
           onClick={() => {

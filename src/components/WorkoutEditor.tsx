@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
 import { allExercises, categoriesOf, exerciseMap, newId, sessionsWithExercise, type Update } from '../store'
-import type { Data, Exercise, Session } from '../types'
+import type { Data, Exercise, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
 import { NumberField } from './NumberField'
@@ -9,8 +9,9 @@ import { NumberField } from './NumberField'
 type Props = {
   data: Data
   update: Update
-  session: Session
-  edit: (mutate: (session: Session) => void) => void
+  workout: Workout
+  edit: (mutate: (workout: Workout) => void) => void
+  children?: ReactNode // extra fields under the name, e.g. the session date
 }
 
 const blankExercise = (): Exercise => ({
@@ -22,18 +23,12 @@ const blankExercise = (): Exercise => ({
   custom: true,
 })
 
-/** yyyy-mm-dd in local time, for <input type="date">. */
-const localDate = (iso: string) => {
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-export function SessionEditor({ data, update, session, edit }: Props) {
+export function WorkoutEditor({ data, update, workout, edit, children }: Props) {
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
   const exercises = exerciseMap(data)
 
   const addEntry = (exercise: Exercise) => {
-    const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== session.id)
+    const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
     const lastSets = last?.entries.find((e) => e.exerciseId === exercise.id)?.sets
     edit((s) => {
       s.entries.push({
@@ -45,19 +40,6 @@ export function SessionEditor({ data, update, session, edit }: Props) {
     setPicker('closed')
   }
 
-  const changeDate = (value: string) => {
-    if (value === '') return
-    const [y, m, d] = value.split('-').map(Number)
-    const start = new Date(session.startedAt)
-    const shifted = new Date(start)
-    shifted.setFullYear(y, m - 1, d)
-    const delta = shifted.getTime() - start.getTime()
-    edit((s) => {
-      s.startedAt = shifted.toISOString()
-      if (s.finishedAt) s.finishedAt = new Date(Date.parse(s.finishedAt) + delta).toISOString()
-    })
-  }
-
   return (
     <div className="editor">
       <div className="card form">
@@ -65,20 +47,17 @@ export function SessionEditor({ data, update, session, edit }: Props) {
           Workout name
           <input
             placeholder="e.g. Upper body"
-            value={session.name}
+            value={workout.name}
             onChange={(e) => edit((s) => void (s.name = e.target.value))}
           />
         </label>
-        <label>
-          Date
-          <input type="date" value={localDate(session.startedAt)} onChange={(e) => changeDate(e.target.value)} />
-        </label>
+        {children}
       </div>
 
-      {session.entries.map((entry, i) => {
+      {workout.entries.map((entry, i) => {
         const exercise = exercises.get(entry.exerciseId)
         if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
-        const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== session.id)
+        const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
         const lastSets = last?.entries.find((e) => e.exerciseId === exercise.id)?.sets
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'
 
@@ -98,7 +77,7 @@ export function SessionEditor({ data, update, session, edit }: Props) {
                 <button
                   className="icon"
                   aria-label="Move down"
-                  disabled={i === session.entries.length - 1}
+                  disabled={i === workout.entries.length - 1}
                   onClick={() => edit((s) => void s.entries.splice(i + 1, 0, ...s.entries.splice(i, 1)))}
                 >
                   ↓

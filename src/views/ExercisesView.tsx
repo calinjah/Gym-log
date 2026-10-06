@@ -63,7 +63,7 @@ export function ExercisesView({ data, update }: Props) {
                 className="danger"
                 onClick={() => {
                   if (isExerciseUsed(data, exercise.id)) {
-                    alert('This exercise is used in your workouts. Remove it from those workouts before deleting it.')
+                    alert('This exercise is used in your workouts or plans. Remove it from those before deleting it.')
                     return
                   }
                   if (!confirm(`Delete ${exercise.name}?`)) return
