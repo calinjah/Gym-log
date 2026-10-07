@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
-import { exerciseMap, newId, startSession, type Update } from '../store'
+import { exerciseMap, finishSession, newId, startSession, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
 
 export function WorkoutView({ data, update }: Props) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
+  const [confirmingFinish, setConfirmingFinish] = useState(false)
   const active = data.active
 
   if (active) {
@@ -17,32 +18,54 @@ export function WorkoutView({ data, update }: Props) {
         mutate(d.active)
       })
 
+    const sets = active.entries.flatMap((e) => e.sets)
+    const unticked = sets.filter((s) => !s.done).length
+    const finish = (keepUnticked: boolean) => {
+      update((d) => finishSession(d, keepUnticked))
+      setConfirmingFinish(false)
+    }
+
     return (
       <>
-        <WorkoutEditor data={data} update={update} workout={active} edit={editActive}>
+        <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live>
           <SessionDateField session={active} edit={editActive} />
         </WorkoutEditor>
-        <div className="row actions">
-          <button
-            className="danger"
-            onClick={() => confirm('Discard this workout? It will not be saved.') && update((d) => void (d.active = null))}
-          >
-            Discard
-          </button>
-          <button
-            className="primary"
-            disabled={active.entries.length === 0}
-            onClick={() =>
-              update((d) => {
-                if (!d.active) throw new Error('No active workout')
-                d.sessions.push({ ...d.active, finishedAt: new Date().toISOString() })
-                d.active = null
-              })
-            }
-          >
-            Finish & save
-          </button>
-        </div>
+        {confirmingFinish ? (
+          <div className="card form">
+            <p>
+              {unticked} of {sets.length} sets aren’t ticked. Did you do them?
+            </p>
+            <button autoFocus onClick={() => finish(true)}>
+              Yes, save them as done
+            </button>
+            <button className="danger" disabled={unticked === sets.length} onClick={() => finish(false)}>
+              No, leave them out
+            </button>
+            <button onClick={() => setConfirmingFinish(false)}>Back to workout</button>
+          </div>
+        ) : (
+          <div className="row actions">
+            <button
+              className="danger"
+              onClick={() =>
+                confirm('Discard this workout? It will not be saved.') &&
+                update((d) => {
+                  d.active = null
+                  d.restUntil = null
+                })
+              }
+            >
+              Discard
+            </button>
+            <button
+              className="primary"
+              disabled={sets.length === 0}
+              onClick={() => (unticked > 0 ? setConfirmingFinish(true) : finish(true))}
+            >
+              Finish & save
+            </button>
+          </div>
+        )}
       </>
     )
   }
@@ -57,6 +80,7 @@ export function WorkoutView({ data, update }: Props) {
           data={data}
           update={update}
           workout={plan}
+          live={false}
           edit={(mutate) =>
             update((d) => {
               const p = d.plans.find((x) => x.id === plan.id)

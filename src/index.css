@@ -37,7 +37,7 @@ body {
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px 16px calc(88px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(140px + env(safe-area-inset-bottom)); /* room for tabs + rest timer */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -331,4 +331,61 @@ input[type='date']::-webkit-date-and-time-value {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Done ticks */
+.tick {
+  color: var(--muted);
+}
+.tick.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.sets tr.done .num {
+  opacity: 0.55;
+}
+.entry-foot {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.entry-foot .notes {
+  flex: 1;
+}
+.rest {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.rest .num {
+  width: 64px;
+}
+
+/* Rest timer bar, sits just above the tabs */
+.rest-timer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(53px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--accent-text);
+  z-index: 5;
+}
+.rest-timer span {
+  flex: 1;
+  font-size: 1.1rem;
+}
+.rest-timer button {
+  padding: 6px 10px;
+  background: transparent;
+  border-color: var(--accent-text);
+  color: var(--accent-text);
 }

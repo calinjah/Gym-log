@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
-import { allExercises, categoriesOf, exerciseMap, newId, sessionsWithExercise, type Update } from '../store'
-import type { Data, Exercise, Workout } from '../types'
+import { unlockAudio } from '../sound'
+import { allExercises, categoriesOf, DEFAULT_REST, exerciseMap, newId, sessionsWithExercise, type Update } from '../store'
+import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
 import { NumberField } from './NumberField'
@@ -11,6 +12,7 @@ type Props = {
   update: Update
   workout: Workout
   edit: (mutate: (workout: Workout) => void) => void
+  live: boolean // the workout in progress: sets can be ticked off, which starts the rest timer
   children?: ReactNode // extra fields under the name, e.g. the session date
 }
 
@@ -23,18 +25,22 @@ const blankExercise = (): Exercise => ({
   custom: true,
 })
 
-export function WorkoutEditor({ data, update, workout, edit, children }: Props) {
+export function WorkoutEditor({ data, update, workout, edit, live, children }: Props) {
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
   const exercises = exerciseMap(data)
 
+  // Only a live workout tracks progress; sets added anywhere else count as done.
+  const newSet = (from: Omit<SetEntry, 'done'>): SetEntry => ({ reps: from.reps, weight: from.weight, done: !live })
+
   const addEntry = (exercise: Exercise) => {
     const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
-    const lastSets = last?.entries.find((e) => e.exerciseId === exercise.id)?.sets
+    const lastEntry = last?.entries.find((e) => e.exerciseId === exercise.id)
     edit((s) => {
       s.entries.push({
         exerciseId: exercise.id,
-        sets: lastSets ? structuredClone(lastSets) : [{ reps: exercise.measure === 'seconds' ? 30 : 10, weight: 0 }],
+        sets: lastEntry ? lastEntry.sets.map(newSet) : [newSet({ reps: exercise.measure === 'seconds' ? 30 : 10, weight: 0 })],
         notes: '',
+        rest: lastEntry?.rest ?? DEFAULT_REST,
       })
     })
     setPicker('closed')
@@ -102,12 +108,13 @@ export function WorkoutEditor({ data, update, workout, edit, children }: Props) 
                   <th>Set</th>
                   <th>+{data.unit}</th>
                   <th>{amountLabel}</th>
+                  {live && <th>Done</th>}
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {entry.sets.map((set, j) => (
-                  <tr key={j}>
+                  <tr key={j} className={live && set.done ? 'done' : undefined}>
                     <td>{j + 1}</td>
                     <td>
                       <NumberField
@@ -123,6 +130,26 @@ export function WorkoutEditor({ data, update, workout, edit, children }: Props) 
                         onChange={(v) => edit((s) => void (s.entries[i].sets[j].reps = v))}
                       />
                     </td>
+                    {live && (
+                      <td>
+                        <button
+                          className={set.done ? 'icon tick on' : 'icon tick'}
+                          aria-label={`Set ${j + 1} done`}
+                          aria-pressed={set.done}
+                          onClick={() => {
+                            unlockAudio()
+                            update((d) => {
+                              const target = d.active?.entries[i].sets[j]
+                              if (!target) throw new Error('No active workout')
+                              target.done = !target.done
+                              d.restUntil = target.done ? Date.now() + entry.rest * 1000 : null
+                            })
+                          }}
+                        >
+                          ✓
+                        </button>
+                      </td>
+                    )}
                     <td>
                       <button
                         className="icon danger"
@@ -140,18 +167,28 @@ export function WorkoutEditor({ data, update, workout, edit, children }: Props) 
               onClick={() =>
                 edit((s) => {
                   const sets = s.entries[i].sets
-                  sets.push(sets.length > 0 ? { ...sets[sets.length - 1] } : { reps: 10, weight: 0 })
+                  sets.push(newSet(sets.length > 0 ? sets[sets.length - 1] : { reps: 10, weight: 0 }))
                 })
               }
             >
               + Add set
             </button>
-            <input
-              className="notes"
-              placeholder="Notes"
-              value={entry.notes}
-              onChange={(e) => edit((s) => void (s.entries[i].notes = e.target.value))}
-            />
+            <div className="entry-foot">
+              <input
+                className="notes"
+                placeholder="Notes"
+                value={entry.notes}
+                onChange={(e) => edit((s) => void (s.entries[i].notes = e.target.value))}
+              />
+              <label className="rest">
+                Rest s
+                <NumberField
+                  label={`${exercise.name} rest seconds`}
+                  value={entry.rest}
+                  onChange={(v) => edit((s) => void (s.entries[i].rest = v))}
+                />
+              </label>
+            </div>
           </div>
         )
       })}

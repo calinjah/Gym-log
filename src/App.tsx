@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { RestTimer } from './components/RestTimer'
 import { useData } from './store'
 import { ExercisesView } from './views/ExercisesView'
 import { HistoryView } from './views/HistoryView'
@@ -21,6 +22,7 @@ export default function App() {
         {tab === 'Exercises' && <ExercisesView data={data} update={update} />}
         {tab === 'Settings' && <SettingsView data={data} update={update} />}
       </main>
+      {data.restUntil !== null && <RestTimer restUntil={data.restUntil} update={update} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>

@@ -5,6 +5,9 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 ## Features
 
 - **Log workouts**: start a workout, add exercises, and add as many sets as you like, each with its own weight and reps (or seconds for holds such as planks or L-sits).
+- **Tick off sets**: during a workout, tick each set as you finish it. If you finish with unticked sets, you choose whether to save them or leave them out.
+- **Rest timer**: ticking a set starts a countdown (rest time set per exercise, default 90 s) with −15/+15/Skip, and beeps when it ends.
+- **Works offline**: after the first visit the app is stored on the device, so it opens without signal. Updates download in the background and apply the next time it opens.
 - **Plans**: build workouts in advance (exercises with target sets, reps and weights), then tap **Start** at the gym and adjust as you go. The plan itself stays unchanged. Any past workout can also be saved as a plan.
 - **Calisthenics library**: about 100 built-in exercises grouped into Push, Pull, Legs, Core, Skills and Conditioning, searchable by name or muscle.
 - **Your own exercises**: create, edit and delete custom exercises with any category, measured in reps or seconds.

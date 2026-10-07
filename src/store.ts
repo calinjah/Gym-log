@@ -1,15 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { LIBRARY } from './library'
-import type { Data, Exercise, ExerciseEntry, Session } from './types'
+import type { Data, Exercise, ExerciseEntry, Session, Workout } from './types'
 
 const KEY = 'gym-data'
 
-const EMPTY: Data = { version: 2, unit: 'kg', customExercises: [], plans: [], sessions: [], active: null }
+export const DEFAULT_REST = 90
+
+const EMPTY: Data = {
+  version: 3,
+  unit: 'kg',
+  customExercises: [],
+  plans: [],
+  sessions: [],
+  active: null,
+  restUntil: null,
+}
+
+/** v2 → v3: sets gain a done flag, exercises gain a rest time. */
+function migrateV2(data: Omit<Data, 'version' | 'restUntil'>): Data {
+  const upgrade = <W extends Workout>(w: W): W => ({
+    ...w,
+    entries: w.entries.map((e) => ({ ...e, rest: DEFAULT_REST, sets: e.sets.map((s) => ({ ...s, done: true })) })),
+  })
+  return {
+    ...data,
+    version: 3,
+    plans: data.plans.map(upgrade),
+    sessions: data.sessions.map(upgrade),
+    active: data.active && upgrade(data.active),
+    restUntil: null,
+  }
+}
 
 export function parseData(json: string): Data {
   let data = JSON.parse(json)
   if (data.version === 1) data = { ...data, version: 2, plans: [] } // v1 had no plans
-  if (data.version !== 2 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 2) data = migrateV2(data)
+  if (data.version !== 3 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as Data
@@ -34,12 +61,15 @@ export function useData(): [Data, Update] {
     navigator.storage?.persist?.()
   }, [])
 
-  const update: Update = (mutate) =>
-    setData((prev) => {
-      const draft = structuredClone(prev)
-      mutate(draft)
-      return draft
-    })
+  const update: Update = useCallback(
+    (mutate) =>
+      setData((prev) => {
+        const draft = structuredClone(prev)
+        mutate(draft)
+        return draft
+      }),
+    [],
+  )
 
   return [data, update]
 }
@@ -66,10 +96,27 @@ export function isExerciseUsed(data: Data, exerciseId: string): boolean {
   return all.some((w) => w.entries.some((e) => e.exerciseId === exerciseId))
 }
 
-/** Begin a new in-progress workout, starting now, with a copy of the given exercises. */
+/** Begin a new in-progress workout, starting now, with a copy of the given exercises (all sets unticked). */
 export function startSession(d: Data, name: string, entries: ExerciseEntry[]) {
   if (d.active) throw new Error('A workout is already in progress')
-  d.active = { id: newId(), name, startedAt: new Date().toISOString(), finishedAt: null, entries: structuredClone(entries) }
+  d.active = {
+    id: newId(),
+    name,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    entries: entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false })) })),
+  }
+}
+
+/** Save the active workout to history. `keepUnticked` false drops sets that were never ticked. */
+export function finishSession(d: Data, keepUnticked: boolean) {
+  if (!d.active) throw new Error('No active workout')
+  const entries = d.active.entries
+    .map((e) => ({ ...e, sets: e.sets.filter((s) => keepUnticked || s.done).map((s) => ({ ...s, done: true })) }))
+    .filter((e) => e.sets.length > 0)
+  d.sessions.push({ ...d.active, entries, finishedAt: new Date().toISOString() })
+  d.active = null
+  d.restUntil = null
 }
 
 export function categoriesOf(exercises: Exercise[]): string[] {

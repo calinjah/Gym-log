@@ -12,12 +12,14 @@ export type Exercise = {
 export type SetEntry = {
   reps: number // repetitions, or seconds when the exercise measure is 'seconds'
   weight: number // added weight; 0 = bodyweight / unloaded
+  done: boolean // ticked off during a live workout; finished sessions keep only done sets
 }
 
 export type ExerciseEntry = {
   exerciseId: string
   sets: SetEntry[]
   notes: string
+  rest: number // rest timer after each set, in seconds
 }
 
 /** What the workout editor edits: shared by sessions and plans. */
@@ -38,10 +40,11 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 2
+  version: 3
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
   sessions: Session[] // finished sessions
   active: Session | null
+  restUntil: number | null // epoch ms when the running rest timer ends
 }

@@ -37,7 +37,7 @@ export function HistoryView({ data, update, onRepeat }: Props) {
           </button>
         </div>
         <p className="muted small">Changes to a past workout are saved automatically.</p>
-        <WorkoutEditor data={data} update={update} workout={open} edit={editOpen}>
+        <WorkoutEditor data={data} update={update} workout={open} edit={editOpen} live={false}>
           <SessionDateField session={open} edit={editOpen} />
         </WorkoutEditor>
         <button
