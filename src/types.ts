@@ -20,6 +20,7 @@ export type ExerciseEntry = {
   sets: SetEntry[]
   notes: string
   rest: number // rest timer after each set, in seconds
+  supersetWithPrevious: boolean // grouped with the exercise above; rest starts after the group's last exercise
 }
 
 /** What the workout editor edits: shared by sessions and plans. */
@@ -40,7 +41,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 4
+  version: 5
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]

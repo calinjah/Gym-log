@@ -6,6 +6,7 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 
 - **Log workouts**: start a workout, add exercises, and add as many sets as you like, each with its own weight and reps (or seconds for holds such as planks or L-sits).
 - **Tick off sets**: during a workout, tick each set as you finish it. If you finish with unticked sets, you choose whether to save them or leave them out.
+- **Supersets & circuits**: tap **+ Link as superset** between two exercises to group them (labelled A1, A2…; link more for a circuit). Ticking a set in a superset skips the rest so you go straight to the next exercise; the rest starts after the last one.
 - **Rest timer**: ticking a set starts a countdown (rest time set per exercise, default 90 s) with −15/+15/Skip, and beeps when it ends.
 - **Works offline**: after the first visit the app is stored on the device, so it opens without signal. Updates download in the background and apply the next time it opens.
 - **Plans**: build workouts in advance (exercises with target sets, reps and weights), then tap **Start** at the gym and adjust as you go. The plan itself stays unchanged. Any past workout can also be saved as a plan.

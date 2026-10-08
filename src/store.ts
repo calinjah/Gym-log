@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LIBRARY } from './library'
-import type { Data, Exercise, ExerciseEntry, Session, Workout } from './types'
+import type { Data, Exercise, ExerciseEntry, Session } from './types'
 
 const KEY = 'gym-data'
 
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 4,
+  version: 5,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -17,31 +17,31 @@ const EMPTY: Data = {
   lastExportAt: null,
 }
 
-/** v2 → v3: sets gain a done flag, exercises gain a rest time. */
-function migrateV2(data: Omit<Data, 'version' | 'restUntil' | 'lastExportAt'>): Omit<Data, 'version' | 'lastExportAt'> & { version: 3 } {
-  const upgrade = <W extends Workout>(w: W): W => ({
-    ...w,
-    entries: w.entries.map((e) => ({ ...e, rest: DEFAULT_REST, sets: e.sets.map((s) => ({ ...s, done: true })) })),
-  })
-  return {
-    ...data,
-    version: 3,
-    plans: data.plans.map(upgrade),
-    sessions: data.sessions.map(upgrade),
-    active: data.active && upgrade(data.active),
-    restUntil: null,
-  }
+/** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
+type RawEntry = Record<string, unknown> & { sets: Record<string, unknown>[] }
+type RawWorkout = Record<string, unknown> & { entries: RawEntry[] }
+type Raw = Record<string, unknown> & { version: number; plans: RawWorkout[]; sessions: RawWorkout[]; active: RawWorkout | null }
+
+/** Apply a change to every exercise entry in plans, finished sessions and the active workout. */
+function mapEntries(data: Raw, change: (e: RawEntry) => RawEntry): Raw {
+  const upgrade = (w: RawWorkout) => ({ ...w, entries: w.entries.map(change) })
+  return { ...data, plans: data.plans.map(upgrade), sessions: data.sessions.map(upgrade), active: data.active && upgrade(data.active) }
 }
 
 export function parseData(json: string): Data {
-  let data = JSON.parse(json)
+  let data = JSON.parse(json) as Raw
   if (data.version === 1) data = { ...data, version: 2, plans: [] } // v1 had no plans
-  if (data.version === 2) data = migrateV2(data)
+  if (data.version === 2) {
+    // v3: sets gain a done flag, exercises gain a rest time
+    data = mapEntries(data, (e) => ({ ...e, rest: DEFAULT_REST, sets: e.sets.map((s) => ({ ...s, done: true })) }))
+    data = { ...data, version: 3, restUntil: null }
+  }
   if (data.version === 3) data = { ...data, version: 4, lastExportAt: null } // v3 did not track backups
-  if (data.version !== 4 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 4) data = { ...mapEntries(data, (e) => ({ ...e, supersetWithPrevious: false })), version: 5 }
+  if (data.version !== 5 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
-  return data as Data
+  return data as unknown as Data
 }
 
 function load(): Data {

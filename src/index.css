@@ -452,3 +452,33 @@ input[type='date']::-webkit-date-and-time-value {
   margin-left: 2px;
   font-size: 0.8rem;
 }
+
+/* Supersets: linked exercises share an accent bar; the link toggle sits between cards */
+.link-toggle {
+  align-self: center;
+  margin: -6px 0;
+  padding: 4px 12px;
+  border-style: dashed;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: transparent;
+}
+.link-toggle.on {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.entry.in-superset {
+  border-left: 4px solid var(--accent);
+}
+.superset-label {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  vertical-align: middle;
+  background: var(--accent);
+  color: var(--accent-text);
+}
