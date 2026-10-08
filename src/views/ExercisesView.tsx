@@ -1,20 +1,19 @@
 import { useState } from 'react'
 import { ExerciseBrowser } from '../components/ExerciseBrowser'
 import { ExerciseForm } from '../components/ExerciseForm'
+import { ProgressChart } from '../components/ProgressChart'
 import { formatDate, formatSet } from '../format'
+import { bestSet, metricsFor, setsIn } from '../stats'
 import { allExercises, categoriesOf, isExerciseUsed, newId, sessionsWithExercise, type Update } from '../store'
-import type { Data, Exercise, SetEntry } from '../types'
+import type { Data, Exercise } from '../types'
 
 type Props = { data: Data; update: Update }
 
 type Mode = { kind: 'browse' } | { kind: 'detail'; id: string } | { kind: 'form'; exercise: Exercise }
 
-/** Heaviest set; ties broken by reps/seconds. */
-const bestSet = (sets: SetEntry[]) =>
-  sets.reduce((best, s) => (s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best))
-
 export function ExercisesView({ data, update }: Props) {
   const [mode, setMode] = useState<Mode>({ kind: 'browse' })
+  const [metricKey, setMetricKey] = useState<string | null>(null)
   const exercises = allExercises(data)
 
   if (mode.kind === 'form') {
@@ -39,7 +38,17 @@ export function ExercisesView({ data, update }: Props) {
     const exercise = exercises.find((e) => e.id === mode.id)
     if (!exercise) throw new Error(`Unknown exercise ${mode.id}`)
     const history = sessionsWithExercise(data, exercise.id)
-    const allSets = history.flatMap((s) => s.entries.filter((e) => e.exerciseId === exercise.id).flatMap((e) => e.sets))
+    const allSets = history.flatMap((s) => setsIn(s, exercise.id))
+    const metrics = metricsFor(exercise, data.unit, allSets.some((s) => s.weight !== 0))
+    const metric = metrics.find((m) => m.key === metricKey) ?? metrics[0]
+    const points = [...history].reverse().map((s) => {
+      const sets = setsIn(s, exercise.id)
+      return {
+        time: Date.parse(s.startedAt),
+        value: metric.value(sets),
+        caption: `${formatDate(s.startedAt)} · ${sets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}`,
+      }
+    })
 
     return (
       <>
@@ -76,6 +85,21 @@ export function ExercisesView({ data, update }: Props) {
             </div>
           )}
         </div>
+        <h3>Progress</h3>
+        {points.length < 2 ? (
+          <p className="muted small">Log this exercise in at least two workouts to see a progress chart.</p>
+        ) : (
+          <div className="card">
+            <div className="chips">
+              {metrics.map((m) => (
+                <button key={m.key} className={m === metric ? 'chip on' : 'chip'} onClick={() => setMetricKey(m.key)}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <ProgressChart key={exercise.id} points={points} unit={metric.unit} />
+          </div>
+        )}
         <h3>History</h3>
         {history.length === 0 && <p className="muted">Not done yet.</p>}
         <ul className="list">

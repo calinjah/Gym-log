@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
 import { unlockAudio } from '../sound'
+import { beats, personalBest } from '../stats'
 import { allExercises, categoriesOf, DEFAULT_REST, exerciseMap, newId, sessionsWithExercise, type Update } from '../store'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
@@ -66,6 +67,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
         const lastSets = last?.entries.find((e) => e.exerciseId === exercise.id)?.sets
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'
+        const pb = live ? personalBest(data, exercise.id) : null
 
         return (
           <div className="card entry" key={i}>
@@ -115,7 +117,14 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
               <tbody>
                 {entry.sets.map((set, j) => (
                   <tr key={j} className={live && set.done ? 'done' : undefined}>
-                    <td>{j + 1}</td>
+                    <td>
+                      {j + 1}
+                      {pb && set.done && beats(set, pb) && (
+                        <span className="pr" title="Personal best" aria-label="Personal best">
+                          🏆
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <NumberField
                         label={`Set ${j + 1} weight`}

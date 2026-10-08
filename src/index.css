@@ -400,3 +400,55 @@ input[type='date']::-webkit-date-and-time-value {
   gap: 10px;
   border-color: var(--danger);
 }
+
+/* Progress chart: single series in the accent; grid and labels recessive */
+.chart {
+  margin: 10px 0 0;
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.chart-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 2.6em;
+  font-size: 0.85rem;
+}
+.chart-readout strong {
+  font-size: 1.15rem;
+}
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.chart-label {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.chart-crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-dot {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.pr {
+  margin-left: 2px;
+  font-size: 0.8rem;
+}
