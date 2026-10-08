@@ -1,17 +1,10 @@
+import { backupStatus, exportData, needsBackup } from '../backup'
 import { parseData, type Update } from '../store'
 import type { Data, Unit } from '../types'
 
 type Props = { data: Data; update: Update }
 
 export function SettingsView({ data, update }: Props) {
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `gym-data-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-  }
-
   const importData = async (file: File) => {
     const imported = parseData(await file.text())
     if (!confirm(`Replace all current data with ${imported.sessions.length} workouts from ${file.name}?`)) return
@@ -30,7 +23,8 @@ export function SettingsView({ data, update }: Props) {
       <p className="muted small">
         Your data is stored in this browser on this device. Export it to move it to another device or browser.
       </p>
-      <button onClick={exportData}>Export data (JSON)</button>
+      <p className={needsBackup(data) ? 'small warn' : 'small muted'}>{backupStatus(data)}</p>
+      <button onClick={() => exportData(data, update)}>Export data (JSON)</button>
       <label className="button">
         Import data (JSON)
         <input

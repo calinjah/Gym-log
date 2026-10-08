@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { backupStatus, exportData, needsBackup } from '../backup'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
 import { exerciseMap, finishSession, newId, startSession, type Update } from '../store'
@@ -112,6 +113,16 @@ export function WorkoutView({ data, update }: Props) {
 
   return (
     <>
+      {needsBackup(data) && (
+        <div className="card backup-reminder">
+          <span>
+            {backupStatus(data)}. Save a copy in case this browser’s data is cleared.
+          </span>
+          <button className="primary" onClick={() => exportData(data, update)}>
+            Back up now
+          </button>
+        </div>
+      )}
       <p className="muted">No workout in progress.</p>
       <button className="primary wide" onClick={() => update((d) => startSession(d, '', []))}>
         Start empty workout

@@ -389,3 +389,14 @@ input[type='date']::-webkit-date-and-time-value {
   border-color: var(--accent-text);
   color: var(--accent-text);
 }
+
+/* Backup reminder */
+.warn {
+  color: var(--danger);
+}
+.backup-reminder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-color: var(--danger);
+}

@@ -7,17 +7,18 @@ const KEY = 'gym-data'
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 3,
+  version: 4,
   unit: 'kg',
   customExercises: [],
   plans: [],
   sessions: [],
   active: null,
   restUntil: null,
+  lastExportAt: null,
 }
 
 /** v2 → v3: sets gain a done flag, exercises gain a rest time. */
-function migrateV2(data: Omit<Data, 'version' | 'restUntil'>): Data {
+function migrateV2(data: Omit<Data, 'version' | 'restUntil' | 'lastExportAt'>): Omit<Data, 'version' | 'lastExportAt'> & { version: 3 } {
   const upgrade = <W extends Workout>(w: W): W => ({
     ...w,
     entries: w.entries.map((e) => ({ ...e, rest: DEFAULT_REST, sets: e.sets.map((s) => ({ ...s, done: true })) })),
@@ -36,7 +37,8 @@ export function parseData(json: string): Data {
   let data = JSON.parse(json)
   if (data.version === 1) data = { ...data, version: 2, plans: [] } // v1 had no plans
   if (data.version === 2) data = migrateV2(data)
-  if (data.version !== 3 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 3) data = { ...data, version: 4, lastExportAt: null } // v3 did not track backups
+  if (data.version !== 4 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as Data

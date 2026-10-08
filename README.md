@@ -14,6 +14,7 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 - **History**: every finished workout is kept with all its sets, reps and weights. Past workouts can be edited, deleted, repeated, or saved as a plan.
 - **Per-exercise progress**: each exercise shows your best set and every past session where you did it. While logging, you also see what you did last time.
 - **Settings**: choose kg or lb, and export or import all your data as a JSON file (to move it to another device or browser).
+- **Backup reminder**: Settings shows when you last exported. If it has been 7 days or more (or never), the Workout tab shows a reminder with a one-tap **Back up now**.
 
 Weight is *added* weight: leave it at 0 for bodyweight, or use a negative number for assisted work (e.g. bands).
 
