@@ -36,8 +36,18 @@ npm run dev      # development server
 npm run build    # production build into dist/
 ```
 
+## Tests
+
+```sh
+npm test            # unit tests (Vitest): data migrations, scheduling, supersets, stats, Renpho import, generator rules
+npm run test:e2e    # end-to-end tests (Playwright): every main flow in a phone-sized browser, with a fixed clock
+npm run lint && npm run typecheck
+```
+
+The generator test checks its rules (fits the time limit, equipment respected, no duplicates, warm-up → skill → main → core, push/pull/legs balance) on every combination of days, length, level and equipment. Every push runs all checks on GitHub; the app is only published from `main` when they pass.
+
 ## Use it on your phone
 
-The workflow in `.github/workflows/deploy.yml` publishes the app to GitHub Pages on every push to `main`. Turn it on once under **Settings → Pages → Source: GitHub Actions**. Then open the site on your phone and use "Add to Home Screen".
+The workflow in `.github/workflows/deploy.yml` tests the app on every push and publishes it to GitHub Pages from `main` once the tests pass. Turn it on once under **Settings → Pages → Source: GitHub Actions**. Then open the site on your phone and use "Add to Home Screen".
 
 Data is stored per browser and per device. Use **Settings → Export** to keep a copy or move it elsewhere.

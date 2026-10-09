@@ -1,5 +1,5 @@
 import { backupStatus, exportData, needsBackup } from '../backup'
-import { parseData, type Update } from '../store'
+import { convertUnit, parseData, type Update } from '../store'
 import type { Data, Unit } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -15,7 +15,7 @@ export function SettingsView({ data, update }: Props) {
     <div className="card form">
       <label>
         Weight unit
-        <select value={data.unit} onChange={(e) => update((d) => void (d.unit = e.target.value as Unit))}>
+        <select value={data.unit} onChange={(e) => update((d) => convertUnit(d, e.target.value as Unit))}>
           <option value="kg">kg</option>
           <option value="lb">lb</option>
         </select>

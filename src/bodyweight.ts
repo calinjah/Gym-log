@@ -1,6 +1,6 @@
 import type { BodyweightEntry, Unit } from './types'
 
-const LB_PER_KG = 2.20462
+export const LB_PER_KG = 2.20462
 
 /** Minimal CSV reader: one separator, quoted fields with "" escapes, CRLF or LF line ends. */
 function parseCsv(text: string, separator: string): string[][] {

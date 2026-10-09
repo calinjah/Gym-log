@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
@@ -10,4 +10,7 @@ export default defineConfig({
     // The manifest stays in public/manifest.webmanifest.
     VitePWA({ registerType: 'autoUpdate', manifest: false, workbox: { globPatterns: ['**/*.{js,css,html,svg,webmanifest}'] } }),
   ],
+  test: {
+    include: ['src/**/*.test.ts'], // e2e/ is run by Playwright
+  },
 })

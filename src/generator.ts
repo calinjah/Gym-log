@@ -80,7 +80,8 @@ const WARMUP_GROUPS: string[][] = [
 const SECONDS_PER_REP = 3
 const CIRCUIT_SIZE = 6 // endurance work is split into circuits of up to this many exercises
 const MAX_CIRCUIT_EXERCISES = 12 // at most two circuits; leftover time goes to extra rounds
-const MAX_ROUNDS = 4
+/** Leftover time adds sets (pairs) or rounds (circuits), up to these limits. */
+const MAX_SETS = { pairs: 5, circuit: 4 }
 /** Slow eccentric drills: strength builders, never high-rep circuit work. */
 const NOT_FOR_CIRCUITS = new Set(['lib-negative-dip', 'lib-negative-pull-up'])
 /** Endurance reps for vertical pulls: 15 pull-ups a round is unrealistic for most people. */
@@ -187,11 +188,11 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   const target = clampLevel(base + LEVEL_OFFSET[spec.type])
   const fixed = [warmup, skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
   const budget = settings.minutes * 60 - fixed.reduce((s, b) => s + blockSeconds(b), 0)
-  let rounds = scheme.sets
+  let sets = scheme.sets
   const mainBlocks = (items: Block['items']): Block[] =>
     scheme.format === 'circuit'
-      ? chunk(items, CIRCUIT_SIZE).map((c) => ({ items: c, sets: rounds, rest: scheme.rest, note: '' }))
-      : chunk(items, 2).map((pair) => ({ items: pair, sets: scheme.sets, rest: scheme.rest, note: '' }))
+      ? chunk(items, CIRCUIT_SIZE).map((c) => ({ items: c, sets, rest: scheme.rest, note: '' }))
+      : chunk(items, 2).map((pair) => ({ items: pair, sets, rest: scheme.rest, note: '' }))
   const mainSeconds = (items: Block['items']) => mainBlocks(items).reduce((s, b) => s + blockSeconds(b), 0)
   const mainItems: Block['items'] = []
   // Two passes over the patterns: the second adds different exercises while time allows.
@@ -204,11 +205,11 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     mainItems.push(take(exercise))
   }
   if (mainItems.length === 0) throw new Error('No exercises match your equipment for this session')
-  // A circuit uses leftover time for extra rounds.
-  while (scheme.format === 'circuit' && rounds < MAX_ROUNDS) {
-    rounds += 1
+  // Leftover time (e.g. no pulling equipment on an upper-body day) becomes extra sets or rounds.
+  while (sets < MAX_SETS[scheme.format]) {
+    sets += 1
     if (mainSeconds(mainItems) > budget) {
-      rounds -= 1
+      sets -= 1
       break
     }
   }

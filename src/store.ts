@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { dayKey } from './format'
 import { LIBRARY } from './library'
-import type { Data, Exercise, ExerciseEntry, Plan, Session } from './types'
+import { LB_PER_KG } from './bodyweight'
+import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types'
 
 const KEY = 'gym-data'
 
@@ -34,7 +35,9 @@ function mapEntries(data: Raw, change: (e: RawEntry) => RawEntry): Raw {
 }
 
 export function parseData(json: string): Data {
-  let data = JSON.parse(json) as Raw
+  const parsed: unknown = JSON.parse(json)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('Not a valid gym data file')
+  let data = parsed as Raw
   if (data.version === 1) data = { ...data, version: 2, plans: [] } // v1 had no plans
   if (data.version === 2) {
     // v3: sets gain a done flag, exercises gain a rest time
@@ -216,3 +219,15 @@ export const blankExercise = (): Exercise => ({
   level: 2,
   equipment: [],
 })
+
+/** Switch the weight unit, converting every stored weight so history keeps its real meaning. */
+export function convertUnit(d: Data, to: Unit) {
+  if (d.unit === to) return
+  const factor = to === 'lb' ? LB_PER_KG : 1 / LB_PER_KG
+  const convert = (weight: number) => Math.round(weight * factor * 10) / 10
+  for (const w of [...d.sessions, ...d.plans, ...(d.active ? [d.active] : [])]) {
+    for (const e of w.entries) for (const s of e.sets) s.weight = convert(s.weight)
+  }
+  for (const b of d.bodyweight) b.weight = convert(b.weight)
+  d.unit = to
+}
