@@ -482,3 +482,74 @@ input[type='date']::-webkit-date-and-time-value {
   background: var(--accent);
   color: var(--accent-text);
 }
+
+/* Training calendar */
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.calendar-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+}
+.calendar-stats div {
+  display: flex;
+  flex-direction: column;
+}
+.calendar-stats strong {
+  font-size: 1.4rem;
+}
+.calendar-stats small {
+  color: var(--muted);
+}
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.calendar-head h3 {
+  font-size: 1rem;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+.calendar-weekday {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.calendar-day {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  font-size: 0.9rem;
+}
+.calendar-day:disabled {
+  opacity: 1;
+}
+.calendar-day.outside {
+  color: var(--muted);
+  opacity: 0.4;
+}
+.calendar-day.trained {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.calendar-day.today {
+  border-color: var(--text);
+}
+.calendar-day.selected {
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--accent);
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

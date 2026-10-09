@@ -9,6 +9,13 @@ export function formatDate(iso: string): string {
   })
 }
 
+/** Local calendar day as yyyy-mm-dd (also the value format of <input type="date">). */
+export function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+export const plural = (n: number, word: string) => `${n} ${n === 1 ? word : word + 's'}`
+
 export function formatDuration(session: Session): string {
   if (!session.finishedAt) return ''
   const min = Math.round((Date.parse(session.finishedAt) - Date.parse(session.startedAt)) / 60000)

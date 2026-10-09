@@ -1,14 +1,9 @@
+import { dayKey } from '../format'
 import type { Session } from '../types'
 
 type Props = {
   session: Session
   edit: (mutate: (session: Session) => void) => void
-}
-
-/** yyyy-mm-dd in local time, for <input type="date">. */
-const localDate = (iso: string) => {
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 /** Changing the date moves the whole session (start and finish) to that day. */
@@ -29,7 +24,7 @@ export function SessionDateField({ session, edit }: Props) {
   return (
     <label>
       Date
-      <input type="date" value={localDate(session.startedAt)} onChange={(e) => changeDate(e.target.value)} />
+      <input type="date" value={dayKey(new Date(session.startedAt))} onChange={(e) => changeDate(e.target.value)} />
     </label>
   )
 }
