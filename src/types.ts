@@ -31,7 +31,9 @@ export type Workout = {
 }
 
 /** A workout planned in advance, started from the Workout tab. */
-export type Plan = Workout
+export type Plan = Workout & {
+  weekdays: number[] // repeats every week on these days (0 = Monday … 6 = Sunday)
+}
 
 export type Session = Workout & {
   startedAt: string // ISO timestamp
@@ -41,7 +43,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 6
+  version: 7
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -49,5 +51,6 @@ export type Data = {
   active: Session | null
   restUntil: number | null // epoch ms when the running rest timer ends
   lastExportAt: string | null // ISO timestamp of the last export (backup)
-  schedule: Record<string, string> // planned workouts: day (yyyy-mm-dd) → plan id
+  // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
+  schedule: Record<string, string | null>
 }

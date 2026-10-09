@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { dayKey } from '../format'
-import { scheduledPlan, startSession, type Update } from '../store'
+import { repeatingPlan, scheduledPlan, setDayPlan, startSession, type Update } from '../store'
 import type { Data } from '../types'
 
 type Props = {
@@ -13,7 +13,9 @@ type Props = {
 /** Plan a workout for a calendar day; on the day itself it can be started from here. */
 export function DayPlanner({ data, update, day, onStarted }: Props) {
   const [today] = useState(() => dayKey(new Date())) // read the clock once, not on every render
-  const plan = scheduledPlan(data, day)
+  const plan = scheduledPlan(data, day, today)
+  const repeating = repeatingPlan(data, day)
+  const weekday = new Date(`${day}T00:00`).toLocaleDateString(undefined, { weekday: 'long' })
   const isToday = day === today
   const isPast = day < today
 
@@ -27,12 +29,7 @@ export function DayPlanner({ data, update, day, onStarted }: Props) {
         {isPast ? 'Planned workout' : 'Plan a workout for this day'}
         <select
           value={plan?.id ?? ''}
-          onChange={(e) =>
-            update((d) => {
-              if (e.target.value === '') delete d.schedule[day]
-              else d.schedule[day] = e.target.value
-            })
-          }
+          onChange={(e) => update((d) => setDayPlan(d, day, e.target.value || null))}
         >
           <option value="">No plan</option>
           {data.plans.map((p) => (
@@ -42,6 +39,12 @@ export function DayPlanner({ data, update, day, onStarted }: Props) {
           ))}
         </select>
       </label>
+      {!isPast && repeating && (
+        <p className="muted small">
+          {repeating.name || 'Untitled plan'} repeats every {weekday}
+          {plan?.id === repeating.id ? '.' : ' — changed for this day only.'}
+        </p>
+      )}
       {plan && isToday && (
         <button
           className="primary"

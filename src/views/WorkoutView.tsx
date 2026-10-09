@@ -3,10 +3,12 @@ import { backupStatus, exportData, needsBackup } from '../backup'
 import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
-import { deletePlan, exerciseMap, finishSession, newId, scheduledPlan, startSession, type Update } from '../store'
+import { deletePlan, exerciseMap, finishSession, newId, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
+
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export function WorkoutView({ data, update }: Props) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
@@ -91,7 +93,23 @@ export function WorkoutView({ data, update }: Props) {
               mutate(p)
             })
           }
-        />
+        >
+          <div className="weekdays">
+            <span>Repeat every week on</span>
+            <div className="chips">
+              {WEEKDAYS.map((name, w) => (
+                <button
+                  key={w}
+                  className={plan.weekdays.includes(w) ? 'chip on' : 'chip'}
+                  aria-pressed={plan.weekdays.includes(w)}
+                  onClick={() => update((d) => toggleWeekday(d, plan.id, w))}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </WorkoutEditor>
         <div className="row actions">
           <button
             className="danger"
@@ -112,7 +130,7 @@ export function WorkoutView({ data, update }: Props) {
   }
 
   const exercises = exerciseMap(data)
-  const todaysPlan = scheduledPlan(data, today)
+  const todaysPlan = scheduledPlan(data, today, today)
 
   return (
     <>
@@ -153,6 +171,7 @@ export function WorkoutView({ data, update }: Props) {
         {data.plans.map((p) => (
           <li key={p.id} className="card plan">
             <strong>{p.name || 'Untitled plan'}</strong>
+            {p.weekdays.length > 0 && <small>Every {p.weekdays.map((w) => WEEKDAYS[w]).join(', ')}</small>}
             <small className="muted">
               {p.entries.length === 0
                 ? 'No exercises yet'
@@ -175,7 +194,7 @@ export function WorkoutView({ data, update }: Props) {
         className="wide"
         onClick={() => {
           const id = newId()
-          update((d) => void d.plans.push({ id, name: '', entries: [] }))
+          update((d) => void d.plans.push({ id, name: '', entries: [], weekdays: [] }))
           setEditingPlanId(id)
         }}
       >

@@ -5,14 +5,14 @@ import type { Session } from '../types'
 
 type Props = {
   sessions: Session[]
-  schedule: Record<string, string> // day → plan id
+  isPlanned: (day: string) => boolean
   selectedDay: string | null // yyyy-mm-dd
   onSelectDay: (day: string | null) => void
 }
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-export function TrainingCalendar({ sessions, schedule, selectedDay, onSelectDay }: Props) {
+export function TrainingCalendar({ sessions, isPlanned, selectedDay, onSelectDay }: Props) {
   const [today] = useState(() => new Date()) // read the clock once, not on every render
   const [shown, setShown] = useState({ year: today.getFullYear(), month: today.getMonth() })
 
@@ -74,7 +74,7 @@ export function TrainingCalendar({ sessions, schedule, selectedDay, onSelectDay 
             'calendar-day',
             day.getMonth() !== shown.month && 'outside',
             count > 0 && 'trained',
-            key in schedule && 'planned',
+            isPlanned(key) && 'planned',
             key === todayKey && 'today',
             key === selectedDay && 'selected',
           ]
@@ -82,7 +82,7 @@ export function TrainingCalendar({ sessions, schedule, selectedDay, onSelectDay 
             <button
               key={key}
               className={classes.filter(Boolean).join(' ')}
-              aria-label={`${day.toLocaleDateString()}: ${count} ${count === 1 ? 'workout' : 'workouts'}${key in schedule ? ', planned' : ''}`}
+              aria-label={`${day.toLocaleDateString()}: ${count} ${count === 1 ? 'workout' : 'workouts'}${isPlanned(key) ? ', planned' : ''}`}
               aria-pressed={key === selectedDay}
               onClick={() => onSelectDay(key === selectedDay ? null : key)}
             >

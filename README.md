@@ -12,6 +12,7 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 - **Plans**: build workouts in advance (exercises with target sets, reps and weights), then tap **Start** at the gym and adjust as you go. The plan itself stays unchanged. Any past workout can also be saved as a plan.
 - **Calisthenics library**: about 100 built-in exercises grouped into Push, Pull, Legs, Core, Skills and Conditioning, searchable by name or muscle.
 - **Your own exercises**: create, edit and delete custom exercises with any category, measured in reps or seconds.
+- **Weekly repeats**: in a plan, pick the weekdays it repeats on (one plan per weekday). Repeats show on the calendar from today on; tap a single day to skip it or swap in another plan without changing the repeat.
 - **Schedule plans**: tap any day in the History calendar and pick a plan for it (dashed ring on the calendar). On the day, the Workout tab shows "Today: <plan>" with a Start button. Deleting a plan removes it from the calendar.
 - **Training calendar**: the History tab opens with a month calendar (trained days filled in, today outlined), workouts this week and this month, and your weekly streak (weeks in a row with at least one workout). Tap a day to see just its workouts.
 - **History**: every finished workout is kept with all its sets, reps and weights. Past workouts can be edited, deleted, repeated, or saved as a plan.

@@ -4,7 +4,7 @@ import { SessionDateField } from '../components/SessionDateField'
 import { TrainingCalendar } from '../components/TrainingCalendar'
 import { WorkoutEditor } from '../components/WorkoutEditor'
 import { dayKey, formatDate, formatDuration, plural } from '../format'
-import { exerciseMap, newId, startSession, type Update } from '../store'
+import { exerciseMap, newId, scheduledPlan, startSession, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update; onStarted: () => void }
@@ -12,6 +12,7 @@ type Props = { data: Data; update: Update; onStarted: () => void }
 export function HistoryView({ data, update, onStarted }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [today] = useState(() => dayKey(new Date())) // read the clock once, not on every render
   const exercises = exerciseMap(data)
   const open = data.sessions.find((s) => s.id === openId)
 
@@ -46,7 +47,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
         <button
           className="wide"
           onClick={() => {
-            update((d) => void d.plans.push({ id: newId(), name: open.name, entries: structuredClone(open.entries) }))
+            update((d) => void d.plans.push({ id: newId(), name: open.name, entries: structuredClone(open.entries), weekdays: [] }))
             alert('Saved to your plans on the Workout tab.')
           }}
         >
@@ -74,7 +75,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
     <>
       <TrainingCalendar
         sessions={data.sessions}
-        schedule={data.schedule}
+        isPlanned={(day) => scheduledPlan(data, day, today) !== null}
         selectedDay={selectedDay}
         onSelectDay={setSelectedDay}
       />

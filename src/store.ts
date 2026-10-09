@@ -7,7 +7,7 @@ const KEY = 'gym-data'
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 6,
+  version: 7,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -40,7 +40,8 @@ export function parseData(json: string): Data {
   if (data.version === 3) data = { ...data, version: 4, lastExportAt: null } // v3 did not track backups
   if (data.version === 4) data = { ...mapEntries(data, (e) => ({ ...e, supersetWithPrevious: false })), version: 5 }
   if (data.version === 5) data = { ...data, version: 6, schedule: {} } // v5 had no calendar planning
-  if (data.version !== 6 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 6) data = { ...data, version: 7, plans: data.plans.map((p) => ({ ...p, weekdays: [] })) } // v6 plans did not repeat
+  if (data.version !== 7 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -127,16 +128,50 @@ export function categoriesOf(exercises: Exercise[]): string[] {
   return [...new Set(exercises.map((e) => e.category))].sort()
 }
 
-/** The plan scheduled on a day (yyyy-mm-dd), or null. */
-export function scheduledPlan(data: Data, day: string): Plan | null {
-  const id = data.schedule[day]
-  if (id === undefined) return null
+/** Monday-first weekday (0 = Monday … 6 = Sunday) of a day key (yyyy-mm-dd). */
+export const weekdayOf = (day: string) => (new Date(`${day}T00:00`).getDay() + 6) % 7
+
+const findPlan = (data: Data, id: string) => {
   const plan = data.plans.find((p) => p.id === id)
   if (!plan) throw new Error(`Scheduled plan ${id} not found`)
   return plan
 }
 
-/** Delete a plan and every calendar day it was scheduled on. */
+/** The plan repeating on this day's weekday, ignoring one-off changes. */
+export function repeatingPlan(data: Data, day: string): Plan | null {
+  return data.plans.find((p) => p.weekdays.includes(weekdayOf(day))) ?? null
+}
+
+/**
+ * The plan for a day (yyyy-mm-dd): a one-off change for that day wins; otherwise a plan
+ * repeating on that weekday, from today on (repeats don't mark past days).
+ */
+export function scheduledPlan(data: Data, day: string, today: string): Plan | null {
+  if (day in data.schedule) {
+    const id = data.schedule[day]
+    return id === null ? null : findPlan(data, id)
+  }
+  return day >= today ? repeatingPlan(data, day) : null
+}
+
+/** Set the plan for one day; choosing what the weekly repeat already gives clears the one-off change. */
+export function setDayPlan(d: Data, day: string, planId: string | null) {
+  if (planId === (repeatingPlan(d, day)?.id ?? null)) delete d.schedule[day]
+  else d.schedule[day] = planId
+}
+
+/** Repeat a plan on a weekday, taking that weekday off any other plan (one plan per day). */
+export function toggleWeekday(d: Data, planId: string, weekday: number) {
+  const plan = findPlan(d, planId)
+  if (plan.weekdays.includes(weekday)) {
+    plan.weekdays = plan.weekdays.filter((w) => w !== weekday)
+    return
+  }
+  for (const p of d.plans) p.weekdays = p.weekdays.filter((w) => w !== weekday)
+  plan.weekdays = [...plan.weekdays, weekday].sort()
+}
+
+/** Delete a plan and its one-off calendar days (skipped days stay skipped). */
 export function deletePlan(d: Data, planId: string) {
   d.plans = d.plans.filter((p) => p.id !== planId)
   d.schedule = Object.fromEntries(Object.entries(d.schedule).filter(([, id]) => id !== planId))
