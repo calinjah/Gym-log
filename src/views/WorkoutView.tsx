@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { backupStatus, exportData, needsBackup } from '../backup'
+import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
-import { exerciseMap, finishSession, newId, startSession, type Update } from '../store'
+import { deletePlan, exerciseMap, finishSession, newId, scheduledPlan, startSession, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -10,6 +11,7 @@ type Props = { data: Data; update: Update }
 export function WorkoutView({ data, update }: Props) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
+  const [today] = useState(() => dayKey(new Date())) // read the clock once, not on every render
   const active = data.active
 
   if (active) {
@@ -95,7 +97,7 @@ export function WorkoutView({ data, update }: Props) {
             className="danger"
             onClick={() => {
               if (!confirm('Delete this plan?')) return
-              update((d) => void (d.plans = d.plans.filter((p) => p.id !== plan.id)))
+              update((d) => deletePlan(d, plan.id))
               setEditingPlanId(null)
             }}
           >
@@ -110,9 +112,24 @@ export function WorkoutView({ data, update }: Props) {
   }
 
   const exercises = exerciseMap(data)
+  const todaysPlan = scheduledPlan(data, today)
 
   return (
     <>
+      {todaysPlan && (
+        <div className="card today-plan">
+          <span>
+            Today: <strong>{todaysPlan.name || 'Untitled plan'}</strong>
+          </span>
+          <button
+            className="primary"
+            disabled={todaysPlan.entries.length === 0}
+            onClick={() => update((d) => startSession(d, todaysPlan.name, todaysPlan.entries))}
+          >
+            Start
+          </button>
+        </div>
+      )}
       {needsBackup(data) && (
         <div className="card backup-reminder">
           <span>

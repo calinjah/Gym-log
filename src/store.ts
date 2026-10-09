@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LIBRARY } from './library'
-import type { Data, Exercise, ExerciseEntry, Session } from './types'
+import type { Data, Exercise, ExerciseEntry, Plan, Session } from './types'
 
 const KEY = 'gym-data'
 
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 5,
+  version: 6,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -15,6 +15,7 @@ const EMPTY: Data = {
   active: null,
   restUntil: null,
   lastExportAt: null,
+  schedule: {},
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -38,7 +39,8 @@ export function parseData(json: string): Data {
   }
   if (data.version === 3) data = { ...data, version: 4, lastExportAt: null } // v3 did not track backups
   if (data.version === 4) data = { ...mapEntries(data, (e) => ({ ...e, supersetWithPrevious: false })), version: 5 }
-  if (data.version !== 5 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 5) data = { ...data, version: 6, schedule: {} } // v5 had no calendar planning
+  if (data.version !== 6 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -123,4 +125,19 @@ export function finishSession(d: Data, keepUnticked: boolean) {
 
 export function categoriesOf(exercises: Exercise[]): string[] {
   return [...new Set(exercises.map((e) => e.category))].sort()
+}
+
+/** The plan scheduled on a day (yyyy-mm-dd), or null. */
+export function scheduledPlan(data: Data, day: string): Plan | null {
+  const id = data.schedule[day]
+  if (id === undefined) return null
+  const plan = data.plans.find((p) => p.id === id)
+  if (!plan) throw new Error(`Scheduled plan ${id} not found`)
+  return plan
+}
+
+/** Delete a plan and every calendar day it was scheduled on. */
+export function deletePlan(d: Data, planId: string) {
+  d.plans = d.plans.filter((p) => p.id !== planId)
+  d.schedule = Object.fromEntries(Object.entries(d.schedule).filter(([, id]) => id !== planId))
 }

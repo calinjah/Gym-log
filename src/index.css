@@ -530,9 +530,6 @@ input[type='date']::-webkit-date-and-time-value {
   background: none;
   font-size: 0.9rem;
 }
-.calendar-day:disabled {
-  opacity: 1;
-}
 .calendar-day.outside {
   color: var(--muted);
   opacity: 0.4;
@@ -552,4 +549,16 @@ input[type='date']::-webkit-date-and-time-value {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.calendar-day.planned:not(.trained) {
+  border: 2px dashed var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.today-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-color: var(--accent);
 }

@@ -41,7 +41,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 5
+  version: 6
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -49,4 +49,5 @@ export type Data = {
   active: Session | null
   restUntil: number | null // epoch ms when the running rest timer ends
   lastExportAt: string | null // ISO timestamp of the last export (backup)
+  schedule: Record<string, string> // planned workouts: day (yyyy-mm-dd) → plan id
 }

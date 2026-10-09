@@ -18,7 +18,7 @@ export default function App() {
       <main>
         <h1>{tab}</h1>
         {tab === 'Workout' && <WorkoutView data={data} update={update} />}
-        {tab === 'History' && <HistoryView data={data} update={update} onRepeat={() => setTab('Workout')} />}
+        {tab === 'History' && <HistoryView data={data} update={update} onStarted={() => setTab('Workout')} />}
         {tab === 'Exercises' && <ExercisesView data={data} update={update} />}
         {tab === 'Settings' && <SettingsView data={data} update={update} />}
       </main>

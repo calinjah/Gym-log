@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DayPlanner } from '../components/DayPlanner'
 import { SessionDateField } from '../components/SessionDateField'
 import { TrainingCalendar } from '../components/TrainingCalendar'
 import { WorkoutEditor } from '../components/WorkoutEditor'
@@ -6,9 +7,9 @@ import { dayKey, formatDate, formatDuration, plural } from '../format'
 import { exerciseMap, newId, startSession, type Update } from '../store'
 import type { Data, Session } from '../types'
 
-type Props = { data: Data; update: Update; onRepeat: () => void }
+type Props = { data: Data; update: Update; onStarted: () => void }
 
-export function HistoryView({ data, update, onRepeat }: Props) {
+export function HistoryView({ data, update, onStarted }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const exercises = exerciseMap(data)
@@ -32,7 +33,7 @@ export function HistoryView({ data, update, onRepeat }: Props) {
             title={data.active ? 'Finish your current workout first' : undefined}
             onClick={() => {
               update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' }))))
-              onRepeat()
+              onStarted()
             }}
           >
             Repeat
@@ -65,15 +66,18 @@ export function HistoryView({ data, update, onRepeat }: Props) {
     )
   }
 
-  if (data.sessions.length === 0) return <p className="empty muted">No finished workouts yet.</p>
-
   const sorted = [...data.sessions]
     .filter((s) => selectedDay === null || dayKey(new Date(s.startedAt)) === selectedDay)
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
 
   return (
     <>
-      <TrainingCalendar sessions={data.sessions} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+      <TrainingCalendar
+        sessions={data.sessions}
+        schedule={data.schedule}
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
+      />
       {selectedDay && (
         <div className="filter-row">
           <span className="muted">{formatDate(new Date(`${selectedDay}T00:00`).toISOString())}</span>
@@ -81,6 +85,10 @@ export function HistoryView({ data, update, onRepeat }: Props) {
             Show all
           </button>
         </div>
+      )}
+      {selectedDay && <DayPlanner data={data} update={update} day={selectedDay} onStarted={onStarted} />}
+      {sorted.length === 0 && (
+        <p className="muted small">{selectedDay ? 'No workouts logged on this day.' : 'No finished workouts yet.'}</p>
       )}
       <ul className="list">
         {sorted.map((s) => {
