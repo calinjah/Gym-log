@@ -587,3 +587,64 @@ input[type='date']::-webkit-date-and-time-value {
   justify-content: space-between;
   padding: 10px 14px;
 }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.chips.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* Programme generator preview */
+.gen-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gen-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gen-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+.gen-item.warm-up,
+.gen-item.core {
+  opacity: 0.75;
+}
+.gen-label {
+  width: 26px;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+.gen-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.gen-name small {
+  color: var(--muted);
+}
+.check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--text) !important;
+}
+.check input {
+  width: auto;
+  min-height: 0;
+}

@@ -3,6 +3,7 @@ import { backupStatus, exportData, needsBackup } from '../backup'
 import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
+import { GeneratorView } from './GeneratorView'
 import { deletePlan, exerciseMap, finishSession, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
 import type { Data, Session } from '../types'
 
@@ -12,6 +13,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export function WorkoutView({ data, update }: Props) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [today] = useState(() => dayKey(new Date())) // read the clock once, not on every render
   const active = data.active
@@ -74,6 +76,8 @@ export function WorkoutView({ data, update }: Props) {
       </>
     )
   }
+
+  if (generating) return <GeneratorView data={data} update={update} onClose={() => setGenerating(false)} />
 
   const plan = data.plans.find((p) => p.id === editingPlanId)
 
@@ -168,13 +172,19 @@ export function WorkoutView({ data, update }: Props) {
       </button>
 
       <h2>Plans</h2>
+      <button className="wide" onClick={() => setGenerating(true)}>
+        ✨ Generate a weekly programme
+      </button>
       {data.plans.length === 0 && (
         <p className="muted small">Plan your workouts in advance, then start one with a tap at the gym.</p>
       )}
       <ul className="list">
         {data.plans.map((p) => (
           <li key={p.id} className="card plan">
-            <strong>{p.name || 'Untitled plan'}</strong>
+            <strong>
+              {p.name || 'Untitled plan'}
+              {p.generated && <span className="tag">programme</span>}
+            </strong>
             {p.weekdays.length > 0 && <small>Every {p.weekdays.map((w) => WEEKDAYS[w]).join(', ')}</small>}
             <small className="muted">
               {p.entries.length === 0
@@ -198,7 +208,7 @@ export function WorkoutView({ data, update }: Props) {
         className="wide"
         onClick={() => {
           const id = newId()
-          update((d) => void d.plans.push({ id, name: '', entries: [], weekdays: [] }))
+          update((d) => void d.plans.push({ id, name: '', entries: [], weekdays: [], generated: false }))
           setEditingPlanId(id)
         }}
       >

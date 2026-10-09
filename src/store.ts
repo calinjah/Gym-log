@@ -8,7 +8,7 @@ const KEY = 'gym-data'
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 9,
+  version: 10,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -18,6 +18,8 @@ const EMPTY: Data = {
   lastExportAt: null,
   schedule: {},
   bodyweight: [],
+  equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
+  level: 'intermediate',
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -54,7 +56,13 @@ export function parseData(json: string): Data {
     }
   }
   if (data.version === 8) data = { ...data, version: 9, bodyweight: [] } // v8 had no bodyweight log
-  if (data.version !== 9 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 9) {
+    // v10: exercises carry generator tags (your own start untagged), plans know if they were generated
+    const customExercises = (data.customExercises as Record<string, unknown>[]).map((e) => ({ ...e, pattern: null, level: 2, equipment: [] }))
+    const plans = data.plans.map((p) => ({ ...p, generated: false }))
+    data = { ...data, version: 10, customExercises, plans, equipment: ['bar', 'rings', 'dip', 'band', 'weights'], level: 'intermediate' }
+  }
+  if (data.version !== 10 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -195,3 +203,16 @@ export function deletePlan(d: Data, planId: string) {
 export function planCompletedOn(data: Data, planId: string, day: string): boolean {
   return data.sessions.some((s) => s.planId === planId && dayKey(new Date(s.startedAt)) === day)
 }
+
+/** A new, empty custom exercise for the exercise form. */
+export const blankExercise = (): Exercise => ({
+  id: newId(),
+  name: '',
+  category: '',
+  muscles: '',
+  measure: 'reps',
+  custom: true,
+  pattern: null,
+  level: 2,
+  equipment: [],
+})

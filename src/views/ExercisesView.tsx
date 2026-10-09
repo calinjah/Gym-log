@@ -4,7 +4,7 @@ import { ExerciseForm } from '../components/ExerciseForm'
 import { ProgressChart } from '../components/ProgressChart'
 import { formatDate, formatSet } from '../format'
 import { bestSet, metricsFor, setsIn } from '../stats'
-import { allExercises, categoriesOf, isExerciseUsed, newId, sessionsWithExercise, type Update } from '../store'
+import { allExercises, blankExercise, categoriesOf, isExerciseUsed, sessionsWithExercise, type Update } from '../store'
 import type { Data, Exercise } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -132,7 +132,7 @@ export function ExercisesView({ data, update }: Props) {
         onClick={() =>
           setMode({
             kind: 'form',
-            exercise: { id: newId(), name: '', category: '', muscles: '', measure: 'reps', custom: true },
+            exercise: blankExercise(),
           })
         }
       >

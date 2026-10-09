@@ -1,5 +1,12 @@
 export type Measure = 'reps' | 'seconds'
 
+/** Movement patterns the workout generator balances. */
+export type Pattern = 'warmup' | 'skill' | 'squat' | 'lunge' | 'hinge' | 'hpush' | 'vpush' | 'hpull' | 'vpull' | 'core'
+
+export type Equipment = 'bar' | 'rings' | 'dip' | 'band' | 'weights'
+
+export type Level = 'beginner' | 'intermediate' | 'advanced'
+
 export type Exercise = {
   id: string
   name: string
@@ -7,6 +14,9 @@ export type Exercise = {
   muscles: string
   measure: Measure
   custom: boolean
+  pattern: Pattern | null // null = the generator doesn't use it
+  level: number // difficulty step, 1 (easiest) to 5
+  equipment: Equipment[] // any one of these is enough; empty = none needed
 }
 
 export type SetEntry = {
@@ -33,6 +43,7 @@ export type Workout = {
 /** A workout planned in advance, started from the Workout tab. */
 export type Plan = Workout & {
   weekdays: number[] // repeats every week on these days (0 = Monday … 6 = Sunday)
+  generated: boolean // made by the programme generator; regenerating replaces these
 }
 
 export type Session = Workout & {
@@ -49,7 +60,7 @@ export type BodyweightEntry = {
 }
 
 export type Data = {
-  version: 9
+  version: 10
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -60,4 +71,6 @@ export type Data = {
   // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
   schedule: Record<string, string | null>
   bodyweight: BodyweightEntry[] // oldest first
+  equipment: Equipment[] // what the user has, for the generator
+  level: Level // training level, for the generator
 }

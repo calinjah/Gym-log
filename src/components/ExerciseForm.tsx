@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Exercise, Measure } from '../types'
+import { EQUIPMENT_LABELS, PATTERN_LABELS } from '../labels'
+import type { Equipment, Exercise, Measure, Pattern } from '../types'
 
 type Props = {
   initial: Exercise
@@ -48,6 +49,55 @@ export function ExerciseForm({ initial, categories, onSave, onCancel }: Props) {
           <option value="seconds">Seconds (holds, timed work)</option>
         </select>
       </label>
+      <label>
+        Movement pattern (lets the programme generator use it)
+        <select
+          value={ex.pattern ?? ''}
+          onChange={(e) => setEx({ ...ex, pattern: e.target.value === '' ? null : (e.target.value as Pattern) })}
+        >
+          <option value="">Not used by the generator</option>
+          {Object.entries(PATTERN_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {ex.pattern && (
+        <>
+          <label>
+            Difficulty
+            <select value={ex.level} onChange={(e) => setEx({ ...ex, level: Number(e.target.value) })}>
+              {[1, 2, 3, 4, 5].map((l) => (
+                <option key={l} value={l}>
+                  {l} {l === 1 ? '(easiest)' : l === 5 ? '(hardest)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="field">
+            <span>Equipment needed (none ticked = bodyweight only)</span>
+            <div className="chips wrap">
+              {(Object.keys(EQUIPMENT_LABELS) as Equipment[]).map((eq) => (
+                <button
+                  key={eq}
+                  type="button"
+                  className={ex.equipment.includes(eq) ? 'chip on' : 'chip'}
+                  aria-pressed={ex.equipment.includes(eq)}
+                  onClick={() =>
+                    setEx({
+                      ...ex,
+                      equipment: ex.equipment.includes(eq) ? ex.equipment.filter((x) => x !== eq) : [...ex.equipment, eq],
+                    })
+                  }
+                >
+                  {EQUIPMENT_LABELS[eq]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
       <div className="row">
         <button type="button" onClick={onCancel}>
           Cancel

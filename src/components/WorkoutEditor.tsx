@@ -3,7 +3,7 @@ import { formatDate, formatSet } from '../format'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, linkedToPrevious, supersetLabels } from '../superset'
-import { allExercises, categoriesOf, DEFAULT_REST, exerciseMap, newId, sessionsWithExercise, type Update } from '../store'
+import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, type Update } from '../store'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
@@ -17,15 +17,6 @@ type Props = {
   live: boolean // the workout in progress: sets can be ticked off, which starts the rest timer
   children?: ReactNode // extra fields under the name, e.g. the session date
 }
-
-const blankExercise = (): Exercise => ({
-  id: newId(),
-  name: '',
-  category: '',
-  muscles: '',
-  measure: 'reps',
-  custom: true,
-})
 
 export function WorkoutEditor({ data, update, workout, edit, live, children }: Props) {
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
