@@ -17,6 +17,7 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 - **Training calendar**: the History tab opens with a month calendar (trained days filled in, today outlined), workouts this week and this month, and your weekly streak (weeks in a row with at least one workout). Tap a day to see just its workouts.
 - **History**: every finished workout is kept with all its sets, reps and weights. Past workouts can be edited, deleted, repeated, or saved as a plan.
 - **Per-exercise progress**: each exercise shows your best set, a progress chart (top weight, most reps/longest hold, or total reps/time per workout; tap or drag to read any workout), and every past session where you did it. While logging, you see what you did last time, and a 🏆 marks any ticked set that beats your previous best.
+- **Bodyweight log**: the Body tab logs one weigh-in per day with a chart. **Import from Renpho**: export your measurements as CSV in the Renpho app and pick the file; the date and weight columns are found by name, pounds/kg are converted, and the earliest weigh-in of each day is kept. (Renpho has no public API, so live syncing isn't possible.)
 - **Settings**: choose kg or lb, and export or import all your data as a JSON file (to move it to another device or browser).
 - **Backup reminder**: Settings shows when you last exported. If it has been 7 days or more (or never), the Workout tab shows a reminder with a one-tap **Back up now**.
 

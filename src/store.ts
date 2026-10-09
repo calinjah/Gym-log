@@ -8,7 +8,7 @@ const KEY = 'gym-data'
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 8,
+  version: 9,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -17,6 +17,7 @@ const EMPTY: Data = {
   restUntil: null,
   lastExportAt: null,
   schedule: {},
+  bodyweight: [],
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -52,7 +53,8 @@ export function parseData(json: string): Data {
       active: data.active && { ...data.active, planId: planIdByName(data.active) },
     }
   }
-  if (data.version !== 8 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 8) data = { ...data, version: 9, bodyweight: [] } // v8 had no bodyweight log
+  if (data.version !== 9 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
