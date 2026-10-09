@@ -1,5 +1,7 @@
 import { DEFAULT_REST, newId } from './store'
-import type { Equipment, Exercise, ExerciseEntry, Level, Pattern, Plan } from './types'
+import type { DayType, Equipment, Exercise, ExerciseEntry, Level, Pattern, Plan, Session } from './types'
+
+export type { DayType }
 
 /**
  * Rules-based weekly programme generator. Each day trains the whole body (or upper/lower on
@@ -8,15 +10,16 @@ import type { Equipment, Exercise, ExerciseEntry, Level, Pattern, Plan } from '.
  * block → main work in push/pull pairs or a circuit → core finisher, sized to fit the time limit.
  */
 
-export type DayType = 'strength' | 'muscle' | 'endurance'
 export type Focus = 'full' | 'upper' | 'lower'
 export type DaySpec = { type: DayType; focus: Focus }
 
 export type GeneratorSettings = {
   exercises: Exercise[]
   equipment: Equipment[]
-  level: Level
+  level: Level // used for movements with no recent history
   minutes: number
+  sessions: Session[] // finished workouts: difficulty and weights come from these
+  now: number // epoch ms, for the history window
 }
 
 export type GeneratedDay = { spec: DaySpec; plan: Plan }
@@ -65,6 +68,41 @@ const SCHEME: Record<DayType, { sets: number; reps: number; hold: number; rest: 
 }
 
 const BASE_LEVEL: Record<Level, number> = { beginner: 2, intermediate: 3, advanced: 4 }
+const HISTORY_DAYS = 56
+
+/**
+ * Difficulty step you can handle for ~6–12 reps, per movement, from the last 8 weeks: an exercise
+ * done for 12+ reps (30+ s holds, or 6+ reps with added weight) counts a step above its own
+ * difficulty, 6–11 reps (15–29 s) at it, fewer one below. The best result per movement wins.
+ */
+export function historyLevels(settings: GeneratorSettings): Partial<Record<Pattern, number>> {
+  const byId = new Map(settings.exercises.map((e) => [e.id, e]))
+  const since = settings.now - HISTORY_DAYS * 86_400_000
+  const levels: Partial<Record<Pattern, number>> = {}
+  for (const session of settings.sessions) {
+    if (Date.parse(session.startedAt) < since) continue
+    for (const entry of session.entries) {
+      const exercise = byId.get(entry.exerciseId)
+      if (!exercise?.pattern || exercise.pattern === 'warmup' || entry.sets.length === 0) continue
+      const best = Math.max(...entry.sets.map((s) => s.reps))
+      const [good, ok] = exercise.measure === 'seconds' ? [30, 15] : [12, 6]
+      const weighted = entry.sets.some((s) => s.weight > 0 && s.reps >= 6)
+      const level = clampLevel(exercise.level + (best >= good || weighted ? 1 : best >= ok ? 0 : -1))
+      levels[exercise.pattern] = Math.max(levels[exercise.pattern] ?? 0, level)
+    }
+  }
+  return levels
+}
+
+/** The weight last used for an exercise, so plans start from it; 0 if never weighted. */
+function lastWeight(sessions: Session[], exerciseId: string): number {
+  const latest = sessions
+    .filter((s) => s.entries.some((e) => e.exerciseId === exerciseId))
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
+  if (!latest) return 0
+  return Math.max(0, ...latest.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets.map((s) => s.weight)))
+}
+
 /** Harder variations for strength, easier ones for high-rep endurance work. */
 const LEVEL_OFFSET: Record<DayType, number> = { strength: 1, muscle: 0, endurance: -1 }
 
@@ -138,11 +176,11 @@ function pick(
   return scored[0]?.e ?? null
 }
 
-function toEntries(blocks: Block[]): ExerciseEntry[] {
+function toEntries(blocks: Block[], sessions: Session[]): ExerciseEntry[] {
   return blocks.flatMap((b) =>
     b.items.map((item, i) => ({
       exerciseId: item.exercise.id,
-      sets: Array.from({ length: b.sets }, () => ({ reps: item.amount, weight: 0, done: false })),
+      sets: Array.from({ length: b.sets }, () => ({ reps: item.amount, weight: lastWeight(sessions, item.exercise.id), done: false })),
       notes: b.note,
       rest: b.rest,
       supersetWithPrevious: i > 0,
@@ -161,7 +199,10 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     dayIds.add(e.id)
     return { exercise: e, amount: amountFor(e, spec.type) }
   }
+  const fromHistory = historyLevels(settings)
   const base = BASE_LEVEL[settings.level]
+  /** Your level for a movement: from recent history, else from the level setting (skills start a step lower). */
+  const levelFor = (pattern: Pattern) => fromHistory[pattern] ?? (pattern === 'skill' ? base - 1 : base)
 
   // Warm-up: one short circuit.
   const warmupItems: Block['items'] = []
@@ -172,20 +213,19 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   const warmup: Block = { items: warmupItems, sets: 1, rest: 30, note: 'Warm-up' }
 
   // Skill practice while fresh, on strength days only.
-  const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(base - 1), dayIds, weekIds, random) : null
+  const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(levelFor('skill')), dayIds, weekIds, random) : null
   const skillBlock: Block | null = skill && { items: [take(skill)], sets: 3, rest: 120, note: 'Skill' }
 
   // Core finisher: one exercise on strength days, otherwise a pair mixing reps and a hold.
   const coreItems: Block['items'] = []
   for (let i = 0; i < (spec.type === 'strength' ? 1 : 2); i++) {
-    const core = pick(settings, 'core', clampLevel(base), dayIds, weekIds, random, coreItems[0]?.exercise.measure)
+    const core = pick(settings, 'core', clampLevel(levelFor('core')), dayIds, weekIds, random, coreItems[0]?.exercise.measure)
     if (core) coreItems.push(take(core))
   }
   const core: Block = { items: coreItems, sets: 3, rest: 45, note: 'Core' }
 
   // Main work fills the remaining time.
   const scheme = SCHEME[spec.type]
-  const target = clampLevel(base + LEVEL_OFFSET[spec.type])
   const fixed = [warmup, skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
   const budget = settings.minutes * 60 - fixed.reduce((s, b) => s + blockSeconds(b), 0)
   let sets = scheme.sets
@@ -199,6 +239,7 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   const patterns = [...MAIN[spec.type][spec.focus], ...MAIN[spec.type][spec.focus]]
   for (const pattern of patterns) {
     if (scheme.format === 'circuit' && mainItems.length === MAX_CIRCUIT_EXERCISES) break
+    const target = clampLevel(levelFor(pattern) + LEVEL_OFFSET[spec.type])
     const exercise = pick(settings, pattern, target, dayIds, weekIds, random, undefined, scheme.format === 'circuit')
     if (!exercise) continue
     if (mainSeconds([...mainItems, { exercise, amount: amountFor(exercise, spec.type) }]) > budget && mainItems.length >= 2) break
@@ -218,9 +259,9 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   return {
     id: newId(),
     name: `${FOCUS_NAMES[spec.focus]} · ${DAY_NAMES[spec.type]}`,
-    entries: toEntries(blocks),
+    entries: toEntries(blocks, settings.sessions),
     weekdays: [],
-    generated: true,
+    dayType: spec.type,
   }
 }
 

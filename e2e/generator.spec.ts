@@ -56,13 +56,13 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: 'Save programme' }).click()
 
     let d = await saved(page)
-    const summary = (ps: { name: string; weekdays: number[]; generated: boolean }[]) => ps.map((p) => [p.name, p.weekdays, p.generated])
+    const summary = (ps: { name: string; weekdays: number[]; dayType: string | null }[]) => ps.map((p) => [p.name, p.weekdays, p.dayType])
     expect(summary(d.plans)).toEqual([
-      ['Push & Legs', [], false],
-      ['Full Body', [3], false],
-      ['Full Body · Strength', [0], true],
-      ['Full Body · Muscle', [2], true],
-      ['Full Body · Endurance', [4], true],
+      ['Push & Legs', [], null],
+      ['Full Body', [3], null],
+      ['Full Body · Strength', [0], 'strength'],
+      ['Full Body · Muscle', [2], 'muscle'],
+      ['Full Body · Endurance', [4], 'endurance'],
     ])
     await expect(page.locator('.plan .tag')).toHaveCount(3)
     await expect(page.locator('.today-plan')).toContainText('Full Body · Endurance') // today is Friday
@@ -73,7 +73,7 @@ test.describe('weekly programme generator', () => {
     await expect(page.getByText('replaces your previous generated programme (3 plans)')).toBeVisible()
     await page.getByRole('button', { name: 'Save programme' }).click()
     d = await saved(page)
-    expect(d.plans.filter((p: { generated: boolean }) => p.generated)).toHaveLength(3)
+    expect(d.plans.filter((p: { dayType: string | null }) => p.dayType !== null)).toHaveLength(3)
     expect(d.plans).toHaveLength(5)
   })
 
@@ -97,5 +97,52 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: 'Finish & save' }).click()
     await page.getByRole('button', { name: 'Yes, save them as done' }).click()
     await expect(page.locator('.today-plan')).toContainText('✓ Completed')
+  })
+})
+
+test.describe('automatic progression', () => {
+  const generated = planOf(
+    'gen',
+    'Full Body · Strength',
+    [
+      entry('lib-band-pull-apart', [{ reps: 12, done: false }], { notes: 'Warm-up' }),
+      entry('lib-pull-up', [{ reps: 5, done: false }, { reps: 5, done: false }]),
+      entry('lib-push-up', [{ reps: 8, done: false }, { reps: 8, done: false }]),
+    ],
+    [4], // today
+    'strength',
+  )
+
+  test('hitting every target raises next time’s targets and says so', async ({ page }) => {
+    await openApp(page, appData({ plans: [generated] }))
+    await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
+    await page.getByRole('button', { name: 'Finish & save' }).click()
+    await page.getByRole('button', { name: 'Yes, save them as done' }).click()
+
+    const card = page.locator('.next-time')
+    await expect(card).toContainText('Pull-up: 2×5 → 2×6')
+    await expect(card).toContainText('Push-up → Decline Push-up (2×5)') // at the strength ceiling of 8
+    await expect(card).not.toContainText('Band')
+    const entries = (await saved(page)).plans[0].entries
+    expect(entries.map((e: { exerciseId: string; sets: { reps: number }[] }) => [e.exerciseId, e.sets[0].reps])).toEqual([
+      ['lib-band-pull-apart', 12],
+      ['lib-pull-up', 6],
+      ['lib-decline-push-up', 5],
+    ])
+
+    await card.getByLabel('Dismiss').click()
+    await expect(card).toHaveCount(0)
+    await page.reload()
+    await expect(page.locator('.next-time')).toHaveCount(0)
+  })
+
+  test('missing a target keeps that exercise the same', async ({ page }) => {
+    await openApp(page, appData({ plans: [generated] }))
+    await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
+    await page.locator('.entry').nth(1).getByLabel('Set 2 reps').fill('4')
+    await page.getByRole('button', { name: 'Finish & save' }).click()
+    await page.getByRole('button', { name: 'Yes, save them as done' }).click()
+    await expect(page.locator('.next-time')).not.toContainText('Pull-up:')
+    expect((await saved(page)).plans[0].entries[1].sets[0].reps).toBe(5)
   })
 })

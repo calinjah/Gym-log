@@ -19,10 +19,18 @@ export function GeneratorView({ data, update, onClose }: Props) {
   const [onCalendar, setOnCalendar] = useState(true)
 
   const exercises = exerciseMap(data)
-  const settings: GeneratorSettings = { exercises: allExercises(data), equipment: data.equipment, level: data.level, minutes }
-  const existingGenerated = data.plans.filter((p) => p.generated)
+  const [now] = useState(() => Date.now()) // read the clock once, not on every render
+  const settings: GeneratorSettings = {
+    exercises: allExercises(data),
+    equipment: data.equipment,
+    level: data.level,
+    minutes,
+    sessions: data.sessions,
+    now,
+  }
+  const existingGenerated = data.plans.filter((p) => p.dayType !== null)
   // Your own plans that would move off a weekday the programme takes.
-  const displaced = data.plans.filter((p) => !p.generated && p.weekdays.some((w) => weekdays.includes(w)))
+  const displaced = data.plans.filter((p) => p.dayType === null && p.weekdays.some((w) => weekdays.includes(w)))
 
   const toggleDay = (w: number) =>
     setWeekdays((days) => (days.includes(w) ? days.filter((d) => d !== w) : [...days, w].sort((a, b) => a - b)))
@@ -57,7 +65,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
   const save = () => {
     if (!week) throw new Error('No programme to save')
     update((d) => {
-      for (const p of d.plans.filter((p) => p.generated)) deletePlan(d, p.id)
+      for (const p of d.plans.filter((p) => p.dayType !== null)) deletePlan(d, p.id)
       for (const { plan } of week) {
         if (onCalendar) {
           for (const p of d.plans) p.weekdays = p.weekdays.filter((w) => !plan.weekdays.includes(w))
@@ -109,6 +117,10 @@ export function GeneratorView({ data, update, onClose }: Props) {
             ))}
           </select>
         </label>
+        <p className="muted small">
+          Difficulty comes from your last 8 weeks of workouts for each movement; your level is only used for movements you
+          haven’t logged yet.
+        </p>
         <div className="field">
           <span>Equipment you have</span>
           <div className="chips wrap">

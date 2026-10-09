@@ -4,7 +4,8 @@ import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
 import { GeneratorView } from './GeneratorView'
-import { deletePlan, exerciseMap, finishSession, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
+import { finishWorkout } from '../progression'
+import { deletePlan, exerciseMap, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -28,7 +29,7 @@ export function WorkoutView({ data, update }: Props) {
     const sets = active.entries.flatMap((e) => e.sets)
     const unticked = sets.filter((s) => !s.done).length
     const finish = (keepUnticked: boolean) => {
-      update((d) => finishSession(d, keepUnticked))
+      update((d) => finishWorkout(d, keepUnticked))
       setConfirmingFinish(false)
     }
 
@@ -156,6 +157,22 @@ export function WorkoutView({ data, update }: Props) {
           )}
         </div>
       )}
+      {data.progressNotes.length > 0 && (
+        <div className="card next-time">
+          <div className="entry-head">
+            <h3>Next time</h3>
+            <button className="icon" aria-label="Dismiss" onClick={() => update((d) => void (d.progressNotes = []))}>
+              ✕
+            </button>
+          </div>
+          <p className="muted small">You hit your targets, so your programme moves up:</p>
+          <ul className="progress-notes">
+            {data.progressNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {needsBackup(data) && (
         <div className="card backup-reminder">
           <span>
@@ -183,7 +200,7 @@ export function WorkoutView({ data, update }: Props) {
           <li key={p.id} className="card plan">
             <strong>
               {p.name || 'Untitled plan'}
-              {p.generated && <span className="tag">programme</span>}
+              {p.dayType && <span className="tag">programme</span>}
             </strong>
             {p.weekdays.length > 0 && <small>Every {p.weekdays.map((w) => WEEKDAYS[w]).join(', ')}</small>}
             <small className="muted">
@@ -208,7 +225,7 @@ export function WorkoutView({ data, update }: Props) {
         className="wide"
         onClick={() => {
           const id = newId()
-          update((d) => void d.plans.push({ id, name: '', entries: [], weekdays: [], generated: false }))
+          update((d) => void d.plans.push({ id, name: '', entries: [], weekdays: [], dayType: null }))
           setEditingPlanId(id)
         }}
       >

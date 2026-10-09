@@ -658,3 +658,18 @@ input[type='date']::-webkit-date-and-time-value {
   width: auto;
   min-height: 0;
 }
+
+/* Auto-progression summary */
+.next-time {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-color: var(--accent);
+}
+.progress-notes {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

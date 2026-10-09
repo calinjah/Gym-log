@@ -36,7 +36,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(11)
+    expect(d.version).toBe(12)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -65,7 +65,7 @@ describe('parseData migrations', () => {
     }
     const d = parseData(JSON.stringify(v7))
     expect(d.sessions.map((s) => s.planId)).toEqual(['pa', null, null])
-    expect(d.plans.every((p) => p.generated === false)).toBe(true)
+    expect(d.plans.every((p) => p.dayType === null)).toBe(true)
   })
 
   it('keeps current-version data unchanged', () => {
@@ -247,5 +247,22 @@ describe('beep volume setting', () => {
   it('gives v10 data the default volume', () => {
     const v10 = { ...data(), version: 10, beepVolume: undefined }
     expect(parseData(JSON.stringify(v10)).beepVolume).toBe(0.7)
+  })
+})
+
+describe('v11 → v12', () => {
+  it('turns the generated flag into the day type, read from the plan name', () => {
+    const v11 = {
+      ...data(),
+      version: 11,
+      plans: [
+        { ...plan({ name: 'Full Body · Strength' }), dayType: undefined, generated: true },
+        { ...plan({ name: 'Lower Body · Endurance' }), dayType: undefined, generated: true },
+        { ...plan({ name: 'My plan' }), dayType: undefined, generated: false },
+      ],
+    }
+    const d = parseData(JSON.stringify(v11))
+    expect(d.plans.map((p) => p.dayType)).toEqual(['strength', 'endurance', null])
+    expect(d.plans.every((p) => !('generated' in p))).toBe(true)
   })
 })

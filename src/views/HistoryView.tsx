@@ -47,7 +47,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
         <button
           className="wide"
           onClick={() => {
-            update((d) => void d.plans.push({ id: newId(), name: open.name, entries: structuredClone(open.entries), weekdays: [], generated: false }))
+            update((d) => void d.plans.push({ id: newId(), name: open.name, entries: structuredClone(open.entries), weekdays: [], dayType: null }))
             alert('Saved to your plans on the Workout tab.')
           }}
         >

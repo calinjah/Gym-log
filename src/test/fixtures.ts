@@ -28,12 +28,12 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
   name: 'Plan',
   entries: [entry('lib-push-up', [set(10, 0, false)])],
   weekdays: [],
-  generated: false,
+  dayType: null,
   ...overrides,
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 11,
+  version: 12,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -46,5 +46,6 @@ export const data = (overrides: Partial<Data> = {}): Data => ({
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   level: 'intermediate',
   beepVolume: 0.7,
+  progressNotes: [],
   ...overrides,
 })

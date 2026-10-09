@@ -20,7 +20,7 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 11,
+    version: 12,
     unit: 'kg',
     customExercises: [],
     plans: [],
@@ -33,6 +33,7 @@ export function appData(overrides: Record<string, unknown> = {}) {
     equipment: ALL_EQUIPMENT,
     level: 'intermediate',
     beepVolume: 0.7,
+    progressNotes: [],
     ...overrides,
   }
 }
@@ -55,12 +56,12 @@ export const finished = (id: string, name: string, startedAt: string, entries: u
   entries,
 })
 
-export const planOf = (id: string, name: string, entries: unknown[], weekdays: number[] = [], generated = false) => ({
+export const planOf = (id: string, name: string, entries: unknown[], weekdays: number[] = [], dayType: string | null = null) => ({
   id,
   name,
   entries,
   weekdays,
-  generated,
+  dayType,
 })
 
 /** Open the app at the fixed time with the given stored data (or none). */

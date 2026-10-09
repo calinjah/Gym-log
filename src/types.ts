@@ -7,6 +7,9 @@ export type Equipment = 'bar' | 'rings' | 'dip' | 'band' | 'weights'
 
 export type Level = 'beginner' | 'intermediate' | 'advanced'
 
+/** Emphasis of a generated session; decides its sets, reps and how it progresses. */
+export type DayType = 'strength' | 'muscle' | 'endurance'
+
 export type Exercise = {
   id: string
   name: string
@@ -43,7 +46,7 @@ export type Workout = {
 /** A workout planned in advance, started from the Workout tab. */
 export type Plan = Workout & {
   weekdays: number[] // repeats every week on these days (0 = Monday … 6 = Sunday)
-  generated: boolean // made by the programme generator; regenerating replaces these
+  dayType: DayType | null // set on plans made by the programme generator (which regenerating replaces); null on your own
 }
 
 export type Session = Workout & {
@@ -60,7 +63,7 @@ export type BodyweightEntry = {
 }
 
 export type Data = {
-  version: 11
+  version: 12
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -74,4 +77,5 @@ export type Data = {
   equipment: Equipment[] // what the user has, for the generator
   level: Level // training level, for the generator
   beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)
+  progressNotes: string[] // what auto-progression changed after the last workout; shown until dismissed
 }

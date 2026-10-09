@@ -10,7 +10,7 @@ export const DEFAULT_REST = 90
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 11,
+  version: 12,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -23,6 +23,7 @@ const EMPTY: Data = {
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   level: 'intermediate',
   beepVolume: DEFAULT_BEEP_VOLUME,
+  progressNotes: [],
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -68,7 +69,17 @@ export function parseData(json: string): Data {
     data = { ...data, version: 10, customExercises, plans, equipment: ['bar', 'rings', 'dip', 'band', 'weights'], level: 'intermediate' }
   }
   if (data.version === 10) data = { ...data, version: 11, beepVolume: DEFAULT_BEEP_VOLUME } // v10 had a fixed beep volume
-  if (data.version !== 11 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 11) {
+    // v12: generated plans record their day type (named "… · Strength|Muscle|Endurance"); yours get null
+    const dayTypeFromName = (name: string) => {
+      const type = name.match(/(Strength|Muscle|Endurance)$/)?.[1]
+      if (!type) throw new Error(`Generated plan "${name}" has no day type`)
+      return type.toLowerCase()
+    }
+    const plans = data.plans.map(({ generated, ...plan }) => ({ ...plan, dayType: generated ? dayTypeFromName(String(plan.name)) : null }))
+    data = { ...data, version: 12, plans, progressNotes: [] }
+  }
+  if (data.version !== 12 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data

@@ -36,7 +36,7 @@ test.describe('settings and your data', () => {
     const v1 = { version: 1, unit: 'kg', customExercises: [], active: null, sessions: [{ id: 'old', name: 'Old', startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T11:00:00Z', entries: [{ exerciseId: 'lib-push-up', sets: [{ reps: 10, weight: 0 }], notes: '' }] }] }
     await page.locator('input[type=file]').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(v1)) })
     await expect.poll(async () => (await saved(page)).sessions.length).toBe(1)
-    expect((await saved(page)).version).toBe(11)
+    expect((await saved(page)).version).toBe(12)
   })
 
   test('importing a file that is not a backup explains the problem and changes nothing', async ({ page }) => {
