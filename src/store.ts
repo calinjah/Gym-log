@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { dayKey } from './format'
 import { LIBRARY } from './library'
 import type { Data, Exercise, ExerciseEntry, Plan, Session } from './types'
 
@@ -7,7 +8,7 @@ const KEY = 'gym-data'
 export const DEFAULT_REST = 90
 
 const EMPTY: Data = {
-  version: 7,
+  version: 8,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -41,7 +42,17 @@ export function parseData(json: string): Data {
   if (data.version === 4) data = { ...mapEntries(data, (e) => ({ ...e, supersetWithPrevious: false })), version: 5 }
   if (data.version === 5) data = { ...data, version: 6, schedule: {} } // v5 had no calendar planning
   if (data.version === 6) data = { ...data, version: 7, plans: data.plans.map((p) => ({ ...p, weekdays: [] })) } // v6 plans did not repeat
-  if (data.version !== 7 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 7) {
+    // v8: sessions remember their plan. Older ones were named after the plan they started from.
+    const planIdByName = (w: RawWorkout) => data.plans.find((p) => p.name !== '' && p.name === w.name)?.id ?? null
+    data = {
+      ...data,
+      version: 8,
+      sessions: data.sessions.map((s) => ({ ...s, planId: planIdByName(s) })),
+      active: data.active && { ...data.active, planId: planIdByName(data.active) },
+    }
+  }
+  if (data.version !== 8 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -102,11 +113,12 @@ export function isExerciseUsed(data: Data, exerciseId: string): boolean {
 }
 
 /** Begin a new in-progress workout, starting now, with a copy of the given exercises (all sets unticked). */
-export function startSession(d: Data, name: string, entries: ExerciseEntry[]) {
+export function startSession(d: Data, name: string, entries: ExerciseEntry[], planId: string | null) {
   if (d.active) throw new Error('A workout is already in progress')
   d.active = {
     id: newId(),
     name,
+    planId,
     startedAt: new Date().toISOString(),
     finishedAt: null,
     entries: entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false })) })),
@@ -175,4 +187,9 @@ export function toggleWeekday(d: Data, planId: string, weekday: number) {
 export function deletePlan(d: Data, planId: string) {
   d.plans = d.plans.filter((p) => p.id !== planId)
   d.schedule = Object.fromEntries(Object.entries(d.schedule).filter(([, id]) => id !== planId))
+}
+
+/** Whether a workout started from this plan was finished on this day (yyyy-mm-dd). */
+export function planCompletedOn(data: Data, planId: string, day: string): boolean {
+  return data.sessions.some((s) => s.planId === planId && dayKey(new Date(s.startedAt)) === day)
 }

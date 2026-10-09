@@ -575,3 +575,9 @@ input[type='date']::-webkit-date-and-time-value {
   flex: 1;
   padding: 6px 0;
 }
+.completed {
+  margin: 0;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}

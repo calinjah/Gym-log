@@ -3,7 +3,7 @@ import { backupStatus, exportData, needsBackup } from '../backup'
 import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
-import { deletePlan, exerciseMap, finishSession, newId, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
+import { deletePlan, exerciseMap, finishSession, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -139,13 +139,17 @@ export function WorkoutView({ data, update }: Props) {
           <span>
             Today: <strong>{todaysPlan.name || 'Untitled plan'}</strong>
           </span>
-          <button
-            className="primary"
-            disabled={todaysPlan.entries.length === 0}
-            onClick={() => update((d) => startSession(d, todaysPlan.name, todaysPlan.entries))}
-          >
-            Start
-          </button>
+          {planCompletedOn(data, todaysPlan.id, today) ? (
+            <span className="completed">✓ Completed</span>
+          ) : (
+            <button
+              className="primary"
+              disabled={todaysPlan.entries.length === 0}
+              onClick={() => update((d) => startSession(d, todaysPlan.name, todaysPlan.entries, todaysPlan.id))}
+            >
+              Start
+            </button>
+          )}
         </div>
       )}
       {needsBackup(data) && (
@@ -159,7 +163,7 @@ export function WorkoutView({ data, update }: Props) {
         </div>
       )}
       <p className="muted">No workout in progress.</p>
-      <button className="primary wide" onClick={() => update((d) => startSession(d, '', []))}>
+      <button className="primary wide" onClick={() => update((d) => startSession(d, '', [], null))}>
         Start empty workout
       </button>
 
@@ -182,7 +186,7 @@ export function WorkoutView({ data, update }: Props) {
               <button
                 className="primary"
                 disabled={p.entries.length === 0}
-                onClick={() => update((d) => startSession(d, p.name, p.entries))}
+                onClick={() => update((d) => startSession(d, p.name, p.entries, p.id))}
               >
                 Start
               </button>

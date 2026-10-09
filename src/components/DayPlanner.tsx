@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { dayKey } from '../format'
-import { repeatingPlan, scheduledPlan, setDayPlan, startSession, type Update } from '../store'
+import { planCompletedOn, repeatingPlan, scheduledPlan, setDayPlan, startSession, type Update } from '../store'
 import type { Data } from '../types'
 
 type Props = {
@@ -45,13 +45,14 @@ export function DayPlanner({ data, update, day, onStarted }: Props) {
           {plan?.id === repeating.id ? '.' : ' — changed for this day only.'}
         </p>
       )}
-      {plan && isToday && (
+      {plan && planCompletedOn(data, plan.id, day) && <p className="completed">✓ {plan.name || 'Plan'} completed</p>}
+      {plan && isToday && !planCompletedOn(data, plan.id, day) && (
         <button
           className="primary"
           disabled={data.active !== null || plan.entries.length === 0}
           title={data.active ? 'Finish your current workout first' : undefined}
           onClick={() => {
-            update((d) => startSession(d, plan.name, plan.entries))
+            update((d) => startSession(d, plan.name, plan.entries, plan.id))
             onStarted()
           }}
         >

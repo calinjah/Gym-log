@@ -33,7 +33,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
             disabled={data.active !== null}
             title={data.active ? 'Finish your current workout first' : undefined}
             onClick={() => {
-              update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' }))))
+              update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' })), open.planId))
               onStarted()
             }}
           >

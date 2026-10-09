@@ -36,6 +36,7 @@ export type Plan = Workout & {
 }
 
 export type Session = Workout & {
+  planId: string | null // the plan it was started from, if any
   startedAt: string // ISO timestamp
   finishedAt: string | null // ISO timestamp, null while in progress
 }
@@ -43,7 +44,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 7
+  version: 8
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
