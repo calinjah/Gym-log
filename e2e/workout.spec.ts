@@ -153,6 +153,25 @@ test.describe('rest timer and supersets', () => {
     await expect(page.locator('.superset-label')).toHaveCount(0)
   })
 
+  test('three or more linked exercises are labelled a circuit', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Pull-up')
+    await addExercise(page, 'Push-up')
+    await addExercise(page, 'Bodyweight Squat')
+    await page.getByRole('button', { name: '+ Link as superset' }).first().click()
+    await expect(page.getByRole('button', { name: 'Superset · tap to unlink' })).toBeVisible()
+    await page.getByRole('button', { name: '+ Add to circuit' }).click()
+    await expect(page.getByRole('button', { name: 'Circuit · tap to unlink' })).toHaveCount(2)
+    await expect(page.locator('.superset-label')).toHaveText(['A1', 'A2', 'A3'])
+
+    // Rest starts only after the last exercise of the circuit.
+    for (const i of [0, 1]) await page.locator('.entry').nth(i).getByLabel('Set 1 done').click()
+    await expect(page.getByRole('timer')).toBeHidden()
+    await page.locator('.entry').nth(2).getByLabel('Set 1 done').click()
+    await expect(page.getByRole('timer')).toBeVisible()
+  })
+
   test('the timer survives a reload', async ({ page }) => {
     await openApp(page)
     await page.getByRole('button', { name: 'Start empty workout' }).click()

@@ -116,8 +116,8 @@ const WARMUP_GROUPS: string[][] = [
 ]
 
 const SECONDS_PER_REP = 3
-const CIRCUIT_SIZE = 6 // endurance work is split into circuits of up to this many exercises
-const MAX_CIRCUIT_EXERCISES = 12 // at most two circuits; leftover time goes to extra rounds
+const CIRCUIT_SIZE = 3 // endurance work is split into short circuits (tri-sets) so rest comes every few minutes
+const MAX_CIRCUIT_EXERCISES = 12 // at most four circuits; leftover time goes to extra rounds
 /** Leftover time adds sets (pairs) or rounds (circuits), up to these limits. */
 const MAX_SETS = { pairs: 5, circuit: 4 }
 /** Slow eccentric drills: strength builders, never high-rep circuit work. */

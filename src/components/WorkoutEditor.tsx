@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
-import { endsGroup, linkedToPrevious, supersetLabels } from '../superset'
+import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
 import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, type Update } from '../store'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
@@ -71,7 +71,11 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                 className={linkedToPrevious(workout.entries, i) ? 'link-toggle on' : 'link-toggle'}
                 onClick={() => edit((s) => void (s.entries[i].supersetWithPrevious = !s.entries[i].supersetWithPrevious))}
               >
-                {linkedToPrevious(workout.entries, i) ? 'Superset · tap to unlink' : '+ Link as superset'}
+                {linkedToPrevious(workout.entries, i)
+                  ? `${groupName(groupSize(workout.entries, i))} · tap to unlink`
+                  : groupSize(workout.entries, i - 1) + groupSize(workout.entries, i) >= 3
+                    ? '+ Add to circuit'
+                    : '+ Link as superset'}
               </button>
             )}
             <div className={label ? 'card entry in-superset' : 'card entry'}>
@@ -158,7 +162,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                                 if (!d.active) throw new Error('No active workout')
                                 const target = d.active.entries[i].sets[j]
                                 target.done = !target.done
-                                // In a superset, go straight to the next exercise; rest after the last one.
+                                // In a superset or circuit, go straight to the next exercise; rest after the last one.
                                 if (endsGroup(d.active.entries, i)) d.restUntil = target.done ? Date.now() + entry.rest * 1000 : null
                               })
                             }}

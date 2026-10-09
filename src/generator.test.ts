@@ -68,14 +68,14 @@ describe('programme generator rules', () => {
         if (spec.focus !== 'upper') expect(has(LEGS), at).toBe(true)
         if (spec.focus === 'upper') expect(has(LEGS), at).toBe(false)
         if (spec.focus === 'lower') expect(has(PUSH) || has(PULL), at).toBe(false)
-        // Groups: pairs on strength/muscle days, circuits of at most 6 on endurance days.
+        // Groups: pairs on strength/muscle days, circuits of at most 3 on endurance days.
         const groupSizes: number[] = []
         plan.entries.forEach((e, i) => {
           if (i > 0 && e.supersetWithPrevious) groupSizes[groupSizes.length - 1]++
           else groupSizes.push(1)
         })
         const mainGroups = groupSizes.slice(1) // after the warm-up circuit
-        expect(Math.max(...mainGroups), at).toBeLessThanOrEqual(spec.type === 'endurance' ? 6 : 2)
+        expect(Math.max(...mainGroups), at).toBeLessThanOrEqual(spec.type === 'endurance' ? 3 : 2)
         // Endurance circuits never include slow negatives.
         if (spec.type === 'endurance') expect(main.some((e) => e.id.includes('negative')), at).toBe(false)
       }

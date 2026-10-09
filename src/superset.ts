@@ -24,3 +24,15 @@ export function supersetLabels(entries: ExerciseEntry[]): (string | null)[] {
   })
   return labels
 }
+
+/** How many exercises are in the group that entry i belongs to (1 if it stands alone). */
+export function groupSize(entries: ExerciseEntry[], i: number): number {
+  let start = i
+  while (linkedToPrevious(entries, start)) start--
+  let end = i
+  while (linkedToPrevious(entries, end + 1)) end++
+  return end - start + 1
+}
+
+/** Two linked exercises are a superset; three or more a circuit. */
+export const groupName = (size: number) => (size >= 3 ? 'Circuit' : 'Superset')

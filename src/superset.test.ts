@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { endsGroup, linkedToPrevious, supersetLabels } from './superset'
+import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from './superset'
 import { entry } from './test/fixtures'
 
 const linked = (flags: boolean[]) => flags.map((f) => entry('lib-push-up', undefined, { supersetWithPrevious: f }))
@@ -22,5 +22,16 @@ describe('supersets', () => {
 
   it('is safe at the end of the list', () => {
     expect(linkedToPrevious(linked([false]), 1)).toBe(false)
+  })
+})
+
+describe('group size and name', () => {
+  it('measures the group an exercise belongs to', () => {
+    const entries = linked([false, true, true, false, false, true])
+    expect(entries.map((_, i) => groupSize(entries, i))).toEqual([3, 3, 3, 1, 2, 2])
+  })
+
+  it('calls pairs supersets and bigger groups circuits', () => {
+    expect([groupName(2), groupName(3), groupName(5)]).toEqual(['Superset', 'Circuit', 'Circuit'])
   })
 })

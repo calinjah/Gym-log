@@ -6,11 +6,11 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 
 - **Log workouts**: start a workout, add exercises, and add as many sets as you like, each with its own weight and reps (or seconds for holds such as planks or L-sits).
 - **Tick off sets**: during a workout, tick each set as you finish it. If you finish with unticked sets, you choose whether to save them or leave them out.
-- **Supersets & circuits**: tap **+ Link as superset** between two exercises to group them (labelled A1, A2…; link more for a circuit). Ticking a set in a superset skips the rest so you go straight to the next exercise; the rest starts after the last one.
+- **Supersets & circuits**: tap **+ Link as superset** between two exercises to group them (labelled A1, A2…); linking a third makes it a **circuit**. Ticking a set in a superset skips the rest so you go straight to the next exercise; the rest starts after the last one.
 - **Rest timer**: ticking a set starts a countdown (rest time set per exercise, default 90 s) with −15/+15/Skip, and beeps when it ends. The beep volume is adjustable in Settings, with a *Test beep* button.
 - **Works offline**: after the first visit the app is stored on the device, so it opens without signal. Updates download in the background and apply the next time it opens.
 - **Weekly programme generator** (Workout tab → *Generate a weekly programme*): pick 2–4 training days, 45 or 60 minutes, your level and equipment. Rules-based, offline:
-  - The week mixes goals (undulating periodisation): **Strength** (4×5, harder variations, skill block first), **Muscle** (3×10 push/pull supersets) and **Endurance** (circuits of 15 reps / 45 s holds). 2 days = Strength + Muscle full body; 3 days adds Endurance; 4 days = upper/lower split.
+  - The week mixes goals (undulating periodisation): **Strength** (4×5, harder variations, skill block first), **Muscle** (3×10 push/pull supersets) and **Endurance** (short circuits of 3 exercises, 15 reps / 45 s holds). 2 days = Strength + Muscle full body; 3 days adds Endurance; 4 days = upper/lower split.
   - Every session: band warm-up circuit → (strength days) skill practice → balanced main work (vertical/horizontal push and pull, squat, hinge, lunge) → core finisher, sized to fit the time.
   - Preview, swap any exercise (⇄, same movement and similar difficulty), regenerate a single day (↻), then save. Saving can put the programme on the calendar; your own plans stay in the list. Regenerating replaces only the previous generated plans.
   - Library exercises are tagged with movement pattern, difficulty (1–5) and equipment; tag your own exercises in their edit form so the generator can use them.
