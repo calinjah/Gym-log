@@ -99,6 +99,16 @@ select {
   min-height: 44px;
 }
 
+/* Sliders: the shared input box (padding, border, background) would make iOS draw the track
+   across the padding while the thumb stops 12px short of the ends. */
+input[type='range'] {
+  padding: 0;
+  border: none;
+  background: none;
+  min-height: 0;
+  accent-color: var(--accent);
+}
+
 /* iOS Safari draws date inputs natively: too wide, too tall, centered text. */
 input[type='date'] {
   -webkit-appearance: none;
