@@ -2,8 +2,8 @@ import type { BodyweightEntry, Unit } from './types'
 
 const LB_PER_KG = 2.20462
 
-/** Minimal CSV reader: commas, quoted fields with "" escapes, CRLF or LF line ends. */
-function parseCsv(text: string): string[][] {
+/** Minimal CSV reader: one separator, quoted fields with "" escapes, CRLF or LF line ends. */
+function parseCsv(text: string, separator: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
   let field = ''
@@ -15,7 +15,7 @@ function parseCsv(text: string): string[][] {
       else if (c === '"') quoted = false
       else field += c
     } else if (c === '"') quoted = true
-    else if (c === ',') {
+    else if (c === separator) {
       row.push(field)
       field = ''
     } else if (c === '\n' || c === '\r') {
@@ -68,9 +68,16 @@ function parseDays(texts: string[]): string[] {
  * (the usual morning weight), whatever order the file lists them in.
  */
 export function parseRenphoCsv(text: string, unit: Unit): BodyweightEntry[] {
-  const [header, ...rows] = parseCsv(text.replace(/^\uFEFF/, ''))
+  const clean = text.replace(/^\uFEFF/, '')
+  // The separator is whichever of tab, semicolon or comma the header line uses most.
+  const firstLine = clean.split(/\r?\n/, 1)[0]
+  const separator = ['\t', ';', ','].reduce((best, s) => (firstLine.split(s).length > firstLine.split(best).length ? s : best))
+  const [header, ...rows] = parseCsv(clean, separator)
   if (!header || rows.length === 0) throw new Error('The file has no measurements')
-  const dateCol = header.findIndex((h) => /date|time/i.test(h))
+  // Renpho's current export has separate "Date" and "Time" columns; older ones one combined column.
+  const dateHeader = header.findIndex((h) => /date/i.test(h))
+  const dateCol = dateHeader !== -1 ? dateHeader : header.findIndex((h) => /time/i.test(h))
+  const timeCol = header.findIndex((h) => /^\s*time\s*$/i.test(h))
   const weightCol = header.findIndex((h) => /weight/i.test(h) && !/fat|muscle|bone|water|lean|free|protein/i.test(h))
   if (dateCol === -1 || weightCol === -1) {
     throw new Error(`Couldn't find the date and weight columns. Columns in this file: ${header.join(', ')}`)
@@ -85,7 +92,7 @@ export function parseRenphoCsv(text: string, unit: Unit): BodyweightEntry[] {
   measured.forEach((r, i) => {
     const value = Number(r[weightCol].replace(',', '.').match(/\d+(\.\d+)?/)?.[0])
     if (!Number.isFinite(value) || value <= 0) throw new Error(`Unrecognised weight "${r[weightCol]}"`)
-    const minutes = minutesOf(r[dateCol])
+    const minutes = minutesOf(timeCol === -1 ? r[dateCol] : r[timeCol])
     const kept = earliest.get(days[i])
     if (!kept || minutes < kept.minutes) earliest.set(days[i], { minutes, weight: Math.round(value * factor * 10) / 10 })
   })
