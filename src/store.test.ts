@@ -36,7 +36,8 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(10)
+    expect(d.version).toBe(11)
+    expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
       sets: [{ reps: 10, weight: 0, done: true }],
@@ -239,5 +240,12 @@ describe('switching weight unit', () => {
     const d = data({ sessions: [session({ entries: [entry('lib-pull-up', [set(5, 10)])] })] })
     convertUnit(d, 'kg')
     expect(d.sessions[0].entries[0].sets[0].weight).toBe(10)
+  })
+})
+
+describe('beep volume setting', () => {
+  it('gives v10 data the default volume', () => {
+    const v10 = { ...data(), version: 10, beepVolume: undefined }
+    expect(parseData(JSON.stringify(v10)).beepVolume).toBe(0.7)
   })
 })

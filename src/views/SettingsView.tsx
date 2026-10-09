@@ -1,4 +1,5 @@
 import { backupStatus, exportData, needsBackup } from '../backup'
+import { testBeep } from '../sound'
 import { convertUnit, parseData, type Update } from '../store'
 import type { Data, Unit } from '../types'
 
@@ -20,6 +21,22 @@ export function SettingsView({ data, update }: Props) {
           <option value="lb">lb</option>
         </select>
       </label>
+      <label>
+        Rest timer beep volume: {Math.round(data.beepVolume * 100)}%
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(data.beepVolume * 100)}
+          onChange={(e) => update((d) => void (d.beepVolume = Number(e.target.value) / 100))}
+        />
+      </label>
+      <button onClick={() => testBeep(data.beepVolume)}>Test beep</button>
+      <p className="muted small">
+        On iPhone the beep is silent while the side switch is on silent, and it also follows the phone’s media volume
+        (use the volume buttons while the app is open).
+      </p>
       <p className="muted small">
         Your data is stored in this browser on this device. Export it to move it to another device or browser.
       </p>

@@ -60,7 +60,7 @@ export type BodyweightEntry = {
 }
 
 export type Data = {
-  version: 10
+  version: 11
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -73,4 +73,5 @@ export type Data = {
   bodyweight: BodyweightEntry[] // oldest first
   equipment: Equipment[] // what the user has, for the generator
   level: Level // training level, for the generator
+  beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)
 }

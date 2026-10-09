@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { restDoneAlert } from '../sound'
 import type { Update } from '../store'
 
-type Props = { restUntil: number; update: Update }
+type Props = { restUntil: number; beepVolume: number; update: Update }
 
 const LATE_MS = 5000 // reopened long after the timer ended: clear it quietly
 
-export function RestTimer({ restUntil, update }: Props) {
+export function RestTimer({ restUntil, beepVolume, update }: Props) {
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
@@ -14,11 +14,11 @@ export function RestTimer({ restUntil, update }: Props) {
       const left = restUntil - Date.now()
       if (left > 0) return setNow(Date.now())
       clearInterval(id)
-      if (left > -LATE_MS) restDoneAlert()
+      if (left > -LATE_MS) restDoneAlert(beepVolume)
       update((d) => void (d.restUntil = null))
     }, 250)
     return () => clearInterval(id)
-  }, [restUntil, update])
+  }, [restUntil, beepVolume, update])
 
   const secs = Math.max(0, Math.ceil((restUntil - now) / 1000))
   const shift = (delta: number) =>

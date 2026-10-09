@@ -36,7 +36,7 @@ test.describe('settings and your data', () => {
     const v1 = { version: 1, unit: 'kg', customExercises: [], active: null, sessions: [{ id: 'old', name: 'Old', startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T11:00:00Z', entries: [{ exerciseId: 'lib-push-up', sets: [{ reps: 10, weight: 0 }], notes: '' }] }] }
     await page.locator('input[type=file]').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(v1)) })
     await expect.poll(async () => (await saved(page)).sessions.length).toBe(1)
-    expect((await saved(page)).version).toBe(10)
+    expect((await saved(page)).version).toBe(11)
   })
 
   test('importing a file that is not a backup explains the problem and changes nothing', async ({ page }) => {
@@ -92,5 +92,41 @@ test.describe('offline', () => {
     await page.reload()
     await expect(page.locator('h1')).toHaveText('Workout')
     await tab(page, 'Exercises')
+  })
+})
+
+test.describe('rest timer beep volume', () => {
+  test('the volume slider saves the setting and the test beep plays without errors', async ({ page }) => {
+    await openApp(page, appData({ beepVolume: 0.4 }))
+    await tab(page, 'Settings')
+    const slider = page.getByLabel(/Rest timer beep volume/)
+    await expect(page.getByText('Rest timer beep volume: 40%')).toBeVisible()
+    await slider.fill('100')
+    await expect(page.getByText('Rest timer beep volume: 100%')).toBeVisible()
+    expect((await saved(page)).beepVolume).toBe(1)
+    await page.getByRole('button', { name: 'Test beep' }).click()
+  })
+
+  test('the rest timer beeps at the chosen volume when it ends', async ({ page }) => {
+    await page.addInitScript(() => {
+      // Record the volume of every beep the app schedules.
+      const volumes: number[] = []
+      ;(window as unknown as { beepVolumes: number[] }).beepVolumes = volumes
+      const original = AudioParam.prototype.setValueAtTime
+      AudioParam.prototype.setValueAtTime = function (value: number, time: number) {
+        if (value > 0.01) volumes.push(value)
+        return original.call(this, value, time)
+      }
+    })
+    await openApp(page, appData({ beepVolume: 0.9 }))
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await page.getByRole('button', { name: '+ Add exercise' }).click()
+    await page.getByPlaceholder('Search exercises or muscles…').fill('Push-up')
+    await page.locator('.list-item strong').getByText('Push-up', { exact: true }).click()
+    await page.getByLabel('Push-up rest seconds').fill('5')
+    await page.getByLabel('Set 1 done').click()
+    await page.clock.runFor(6_000)
+    await expect(page.getByRole('timer')).toBeHidden()
+    expect(await page.evaluate(() => (window as unknown as { beepVolumes: number[] }).beepVolumes)).toEqual([0.9, 0.9, 0.9])
   })
 })

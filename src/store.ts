@@ -7,9 +7,10 @@ import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types
 const KEY = 'gym-data'
 
 export const DEFAULT_REST = 90
+export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 10,
+  version: 11,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -21,6 +22,7 @@ const EMPTY: Data = {
   bodyweight: [],
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   level: 'intermediate',
+  beepVolume: DEFAULT_BEEP_VOLUME,
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -65,7 +67,8 @@ export function parseData(json: string): Data {
     const plans = data.plans.map((p) => ({ ...p, generated: false }))
     data = { ...data, version: 10, customExercises, plans, equipment: ['bar', 'rings', 'dip', 'band', 'weights'], level: 'intermediate' }
   }
-  if (data.version !== 10 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 10) data = { ...data, version: 11, beepVolume: DEFAULT_BEEP_VOLUME } // v10 had a fixed beep volume
+  if (data.version !== 11 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data

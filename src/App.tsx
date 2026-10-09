@@ -24,7 +24,7 @@ export default function App() {
         {tab === 'Body' && <BodyView data={data} update={update} />}
         {tab === 'Settings' && <SettingsView data={data} update={update} />}
       </main>
-      {data.restUntil !== null && <RestTimer restUntil={data.restUntil} update={update} />}
+      {data.restUntil !== null && <RestTimer restUntil={data.restUntil} beepVolume={data.beepVolume} update={update} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>

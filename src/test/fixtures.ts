@@ -33,7 +33,7 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 10,
+  version: 11,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -45,5 +45,6 @@ export const data = (overrides: Partial<Data> = {}): Data => ({
   bodyweight: [],
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   level: 'intermediate',
+  beepVolume: 0.7,
   ...overrides,
 })
