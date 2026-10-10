@@ -204,12 +204,13 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                 {/* Linked exercises run back to back: only the last one in the group has a rest. */}
                 {endsGroup(workout.entries, i) && (
                   <label className="rest">
-                    {groupSize(workout.entries, i) > 1 ? 'Rest after round s' : 'Rest s'}
+                    {groupSize(workout.entries, i) > 1 ? 'Rest after round' : 'Rest'}
                     <NumberField
                       label={`${exercise.name} rest seconds`}
                       value={entry.rest}
                       onChange={(v) => edit((s) => void (s.entries[i].rest = v))}
                     />
+                    s
                   </label>
                 )}
               </div>

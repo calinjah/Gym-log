@@ -167,6 +167,8 @@ test.describe('rest timer and supersets', () => {
     // Only the last exercise of the circuit has a rest, labelled as the rest after a round.
     await expect(page.locator('.entry .rest')).toHaveCount(1)
     await expect(page.locator('.entry').nth(2).locator('.rest')).toContainText('Rest after round')
+    // Reads "Rest after round [60] s": the unit comes after the number.
+    expect(await page.locator('.entry').nth(2).locator('.rest').evaluate((el) => el.lastChild?.textContent?.trim())).toBe('s')
 
     // Rest starts only after the last exercise of the circuit.
     for (const i of [0, 1]) await page.locator('.entry').nth(i).getByLabel('Set 1 done').click()
