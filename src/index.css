@@ -591,12 +591,6 @@ input[type='date']::-webkit-date-and-time-value {
   color: var(--accent);
   white-space: nowrap;
 }
-.weigh-in {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-}
 .field {
   display: flex;
   flex-direction: column;

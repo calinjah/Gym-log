@@ -36,7 +36,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(12)
+    expect(d.version).toBe(13)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -49,7 +49,7 @@ describe('parseData migrations', () => {
     expect(d.active?.planId).toBeNull()
     expect(d.plans).toEqual([])
     expect(d.schedule).toEqual({})
-    expect(d.bodyweight).toEqual([])
+    expect('bodyweight' in d).toBe(false)
     expect(d.restUntil).toBeNull()
     expect(d.lastExportAt).toBeNull()
     expect(d.customExercises[0]).toMatchObject({ name: 'Goblet squat', pattern: null, level: 2, equipment: [] })
@@ -218,22 +218,19 @@ describe('calendar scheduling', () => {
 })
 
 describe('switching weight unit', () => {
-  it('converts sets everywhere and the bodyweight log, and converts back', () => {
+  it('converts sets everywhere, and converts back', () => {
     const d = data({
       sessions: [session({ entries: [entry('lib-pull-up', [set(5, 10), set(8, 0)])] })],
       plans: [plan({ entries: [entry('lib-pull-up', [set(5, 20)])] })],
       active: session({ finishedAt: null, entries: [entry('lib-pull-up', [set(5, 2.5)])] }),
-      bodyweight: [{ date: '2026-10-08', weight: 70 }],
     })
     convertUnit(d, 'lb')
     expect(d.unit).toBe('lb')
     expect(d.sessions[0].entries[0].sets.map((s) => s.weight)).toEqual([22, 0])
     expect(d.plans[0].entries[0].sets[0].weight).toBe(44.1)
     expect(d.active!.entries[0].sets[0].weight).toBe(5.5)
-    expect(d.bodyweight[0].weight).toBe(154.3)
     convertUnit(d, 'kg')
     expect(d.sessions[0].entries[0].sets[0].weight).toBe(10)
-    expect(d.bodyweight[0].weight).toBe(70)
   })
 
   it('does nothing when the unit is unchanged', () => {
@@ -264,5 +261,15 @@ describe('v11 → v12', () => {
     const d = parseData(JSON.stringify(v11))
     expect(d.plans.map((p) => p.dayType)).toEqual(['strength', 'endurance', null])
     expect(d.plans.every((p) => !('generated' in p))).toBe(true)
+  })
+})
+
+describe('v12 → v13', () => {
+  it('drops the removed bodyweight log and keeps everything else', () => {
+    const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
+    const d = parseData(JSON.stringify(v12))
+    expect(d.version).toBe(13)
+    expect('bodyweight' in d).toBe(false)
+    expect(d.sessions).toHaveLength(1)
   })
 })

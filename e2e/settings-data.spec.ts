@@ -36,7 +36,7 @@ test.describe('settings and your data', () => {
     const v1 = { version: 1, unit: 'kg', customExercises: [], active: null, sessions: [{ id: 'old', name: 'Old', startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T11:00:00Z', entries: [{ exerciseId: 'lib-push-up', sets: [{ reps: 10, weight: 0 }], notes: '' }] }] }
     await page.locator('input[type=file]').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(v1)) })
     await expect.poll(async () => (await saved(page)).sessions.length).toBe(1)
-    expect((await saved(page)).version).toBe(12)
+    expect((await saved(page)).version).toBe(13)
   })
 
   test('importing a file that is not a backup explains the problem and changes nothing', async ({ page }) => {
@@ -52,17 +52,15 @@ test.describe('settings and your data', () => {
   })
 
   test('switching kg ↔ lb converts every stored weight, not just the label', async ({ page }) => {
-    await openApp(page, appData({ sessions: history, bodyweight: [{ date: '2026-10-08', weight: 70 }] }))
+    await openApp(page, appData({ sessions: history }))
     await tab(page, 'Settings')
     await page.getByLabel('Weight unit').selectOption('lb')
     let d = await saved(page)
     expect(d.unit).toBe('lb')
     expect(d.sessions[0].entries[0].sets[0].weight).toBe(22) // 10 kg
-    expect(d.bodyweight[0].weight).toBe(154.3) // 70 kg
     await page.getByLabel('Weight unit').selectOption('kg')
     d = await saved(page)
     expect(d.sessions[0].entries[0].sets[0].weight).toBe(10)
-    expect(d.bodyweight[0].weight).toBe(70)
   })
 
   test('data from the very first version of the app still loads', async ({ page }) => {

@@ -57,13 +57,8 @@ export type Session = Workout & {
 
 export type Unit = 'kg' | 'lb'
 
-export type BodyweightEntry = {
-  date: string // yyyy-mm-dd, one entry per day
-  weight: number // in the app's unit
-}
-
 export type Data = {
-  version: 12
+  version: 13
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -73,7 +68,6 @@ export type Data = {
   lastExportAt: string | null // ISO timestamp of the last export (backup)
   // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
   schedule: Record<string, string | null>
-  bodyweight: BodyweightEntry[] // oldest first
   equipment: Equipment[] // what the user has, for the generator
   level: Level // training level, for the generator
   beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)

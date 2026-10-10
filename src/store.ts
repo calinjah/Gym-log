@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { dayKey } from './format'
 import { LIBRARY } from './library'
-import { LB_PER_KG } from './bodyweight'
 import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types'
 
 const KEY = 'gym-data'
 
 export const DEFAULT_REST = 90
+export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 12,
+  version: 13,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -19,7 +19,6 @@ const EMPTY: Data = {
   restUntil: null,
   lastExportAt: null,
   schedule: {},
-  bodyweight: [],
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   level: 'intermediate',
   beepVolume: DEFAULT_BEEP_VOLUME,
@@ -79,7 +78,12 @@ export function parseData(json: string): Data {
     const plans = data.plans.map(({ generated, ...plan }) => ({ ...plan, dayType: generated ? dayTypeFromName(String(plan.name)) : null }))
     data = { ...data, version: 12, plans, progressNotes: [] }
   }
-  if (data.version !== 12 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 12) {
+    // v13: the bodyweight log was removed from the app
+    const { bodyweight: _removed, ...rest } = data
+    data = { ...rest, version: 13 } as Raw
+  }
+  if (data.version !== 13 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -234,7 +238,7 @@ export const blankExercise = (): Exercise => ({
   equipment: [],
 })
 
-/** Switch the weight unit, converting every stored weight so history keeps its real meaning. */
+/** Switch the weight unit, converting every stored set weight so history keeps its real meaning. */
 export function convertUnit(d: Data, to: Unit) {
   if (d.unit === to) return
   const factor = to === 'lb' ? LB_PER_KG : 1 / LB_PER_KG
@@ -242,6 +246,5 @@ export function convertUnit(d: Data, to: Unit) {
   for (const w of [...d.sessions, ...d.plans, ...(d.active ? [d.active] : [])]) {
     for (const e of w.entries) for (const s of e.sets) s.weight = convert(s.weight)
   }
-  for (const b of d.bodyweight) b.weight = convert(b.weight)
   d.unit = to
 }

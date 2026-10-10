@@ -20,7 +20,7 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 12,
+    version: 13,
     unit: 'kg',
     customExercises: [],
     plans: [],
@@ -29,7 +29,6 @@ export function appData(overrides: Record<string, unknown> = {}) {
     restUntil: null,
     lastExportAt: NOW.toISOString(), // no backup reminder unless a test wants one
     schedule: {},
-    bodyweight: [],
     equipment: ALL_EQUIPMENT,
     level: 'intermediate',
     beepVolume: 0.7,
@@ -78,7 +77,7 @@ export async function saved(page: Page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem('gym-data') ?? 'null'))
 }
 
-export async function tab(page: Page, name: 'Workout' | 'History' | 'Exercises' | 'Body' | 'Settings') {
+export async function tab(page: Page, name: 'Workout' | 'History' | 'Exercises' | 'Settings') {
   await page.locator('.tabs button', { hasText: name }).click()
   await expect(page.locator('h1')).toHaveText(name)
 }
