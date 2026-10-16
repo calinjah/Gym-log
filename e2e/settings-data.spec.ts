@@ -127,4 +127,28 @@ test.describe('rest timer beep volume', () => {
     await expect(page.getByRole('timer')).toBeHidden()
     expect(await page.evaluate(() => (window as unknown as { beepVolumes: number[] }).beepVolumes)).toEqual([0.9, 0.9, 0.9])
   })
+
+  test('audio mixes with music from other apps instead of pausing it (iOS audio session)', async ({ page }) => {
+    await page.addInitScript(() => {
+      // Chromium has no audioSession; stand in for Safari's and record the type when the AudioContext is created.
+      const session = { type: 'auto' }
+      Object.defineProperty(navigator, 'audioSession', { value: session })
+      const typeAtStart: string[] = []
+      ;(window as unknown as { typeAtStart: string[] }).typeAtStart = typeAtStart
+      const Original = AudioContext
+      window.AudioContext = class extends Original {
+        constructor() {
+          typeAtStart.push(session.type)
+          super()
+        }
+      }
+    })
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await page.getByRole('button', { name: '+ Add exercise' }).click()
+    await page.getByPlaceholder('Search exercises or muscles…').fill('Push-up')
+    await page.locator('.list-item strong').getByText('Push-up', { exact: true }).click()
+    await page.getByLabel('Set 1 done').click()
+    expect(await page.evaluate(() => (window as unknown as { typeAtStart: string[] }).typeAtStart)).toEqual(['ambient'])
+  })
 })

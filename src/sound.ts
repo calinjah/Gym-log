@@ -1,7 +1,14 @@
 let ctx: AudioContext | null = null
 
+/** Safari's Audio Session API (iOS 17+); not in TypeScript's DOM types yet. */
+type AudioSessionNavigator = Navigator & { audioSession?: { type: string } }
+
 /** Browsers only allow audio after a tap; call this from a tap handler. */
 export function unlockAudio() {
+  // Mix with other apps' audio (e.g. Spotify) instead of taking over the iOS audio session and pausing it.
+  // Must be set before the AudioContext starts. Other browsers have no audioSession and already mix.
+  const session = (navigator as AudioSessionNavigator).audioSession
+  if (session) session.type = 'ambient'
   ctx ??= new AudioContext()
   void ctx.resume()
 }
