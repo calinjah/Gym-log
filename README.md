@@ -11,7 +11,8 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 - **Works offline**: after the first visit the app is stored on the device, so it opens without signal. Updates download in the background and apply the next time it opens.
 - **Weekly programme generator** (Workout tab → *Generate a weekly programme*): pick 2–4 training days, 45 or 60 minutes, your level and equipment. Rules-based, offline:
   - The week mixes goals (undulating periodisation): **Strength** (4×5, harder variations, skill block first), **Muscle** (3×10 push/pull supersets) and **Endurance** (short circuits of 3 exercises, 15 reps / 45 s holds). 2 days = Strength + Muscle full body; 3 days adds Endurance; 4 days = upper/lower split.
-  - Every session: band warm-up circuit → (strength days) skill practice → balanced main work (vertical/horizontal push and pull, squat, hinge, lunge) → core finisher, sized to fit the time.
+  - Every session: warm-up for the joints that session uses → (strength days) skill practice → balanced main work (vertical/horizontal push and pull, squat, hinge, lunge) → core finisher → stretches for the muscles worked.
+  - **Trainer-style volume and rest**: each muscle group (push, pull, legs, hips) gets about 14 hard sets a week (research supports 10–20), spread over the days that train it. The session length is a limit, not a target: sessions end early once the volume is done; if time is short, every exercise loses a set (4 → 3) before any is dropped. Rest is 2½ min on strength days, 90 s on muscle days and 60 s in endurance circuits. Each day shows an effort target (e.g. stop 2–3 reps short of failure on strength days), also during the workout.
   - Preview, swap any exercise (⇄, same movement and similar difficulty), regenerate a single day (↻), then save. Saving can put the programme on the calendar; your own plans stay in the list. Regenerating replaces only the previous generated plans.
   - Library exercises are tagged with movement pattern, difficulty (1–5) and equipment; tag your own exercises in their edit form so the generator can use them.
   - **Learns from your history**: difficulty per movement comes from your last 8 weeks (12+ reps or 30+ s holds = a step above that exercise's difficulty, 6–11 reps at it, fewer below; weighted 6+ reps = a step above). The level setting only covers movements you haven't logged. Weights are pre-filled from what you last used.
@@ -45,7 +46,7 @@ npm run test:e2e    # end-to-end tests (Playwright): every main flow in a phone-
 npm run lint && npm run typecheck
 ```
 
-The generator test checks its rules (fits the time limit, equipment respected, no duplicates, warm-up → skill → main → core, push/pull/legs balance) on every combination of days, length, level and equipment. Every push runs all checks on GitHub; the app is only published from `main` when they pass.
+The generator test checks its rules (fits the time limit, equipment respected, no duplicates, warm-up → skill → main → core → stretches, push/pull/legs balance, 10–20 weekly sets per muscle group, rest periods) on every combination of days, length, level and equipment. Every push runs all checks on GitHub; the app is only published from `main` when they pass.
 
 ## Use it on your phone
 
