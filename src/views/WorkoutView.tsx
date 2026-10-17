@@ -3,6 +3,7 @@ import { backupStatus, exportData, needsBackup } from '../backup'
 import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
+import { EFFORT } from '../generator'
 import { GeneratorView } from './GeneratorView'
 import { finishWorkout } from '../progression'
 import { deletePlan, exerciseMap, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
@@ -26,6 +27,7 @@ export function WorkoutView({ data, update }: Props) {
         mutate(d.active)
       })
 
+    const dayType = data.plans.find((p) => p.id === active.planId)?.dayType ?? null // effort target for programme days
     const sets = active.entries.flatMap((e) => e.sets)
     const unticked = sets.filter((s) => !s.done).length
     const finish = (keepUnticked: boolean) => {
@@ -37,6 +39,7 @@ export function WorkoutView({ data, update }: Props) {
       <>
         <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live>
           <SessionDateField session={active} edit={editActive} />
+          {dayType && <p className="muted small">{EFFORT[dayType]}</p>}
         </WorkoutEditor>
         {confirmingFinish ? (
           <div className="card form">

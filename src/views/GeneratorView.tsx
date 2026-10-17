@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { alternative, amountFor, estimateMinutes, generateDay, generateProgramme, type GeneratedDay, type GeneratorSettings } from '../generator'
+import { alternative, amountFor, EFFORT, estimateMinutes, generateDay, generateProgramme, type GeneratedDay, type GeneratorSettings } from '../generator'
 import { EQUIPMENT_LABELS, LEVEL_LABELS } from '../labels'
 import { allExercises, deletePlan, exerciseMap, type Update } from '../store'
 import { supersetLabels } from '../superset'
@@ -141,7 +141,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
         </button>
       </div>
 
-      {week?.map(({ plan }, i) => {
+      {week?.map(({ plan, spec }, i) => {
         const labels = supersetLabels(plan.entries)
         return (
           <div key={plan.id} className="card gen-day">
@@ -154,6 +154,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
               </button>
             </div>
             <p className="muted small">About {estimateMinutes(plan, exercises)} min</p>
+            <p className="muted small">{EFFORT[spec.type]}</p>
             <ul className="gen-list">
               {plan.entries.map((entry, k) => {
                 const exercise = exercises.get(entry.exerciseId)

@@ -21,6 +21,17 @@ const WEEKS: number[][] = [[1, 4], [0, 2, 4], [0, 1, 3, 4]]
 const PUSH = ['hpush', 'vpush']
 const PULL = ['hpull', 'vpull']
 const LEGS = ['squat', 'lunge', 'hinge']
+const GROUP_OF: Record<string, string> = { hpush: 'push', vpush: 'push', hpull: 'pull', vpull: 'pull', squat: 'legs', lunge: 'legs', hinge: 'hips' }
+
+/** Hard sets per muscle group in a week of plans (main work only). */
+function weeklySets(plans: Plan[]): Record<string, number> {
+  const sets: Record<string, number> = { push: 0, pull: 0, legs: 0, hips: 0 }
+  for (const p of plans) for (const e of p.entries) {
+    const group = GROUP_OF[byId.get(e.exerciseId)!.pattern!]
+    if (group) sets[group] += e.sets.length
+  }
+  return sets
+}
 
 /** Every combination of settings, each with several random seeds. */
 const cases = WEEKS.flatMap((weekdays) =>
@@ -47,9 +58,8 @@ describe('programme generator rules', () => {
         const patterns = exercises.map((e) => e.pattern)
         const main = exercises.filter((e) => !['warmup', 'skill', 'core', 'stretch'].includes(e.pattern ?? ''))
 
-        // Fits the chosen time, and isn't half empty.
+        // Fits the chosen time (it may end early: volume, not time, decides how much main work there is).
         expect(estimateMinutes(plan, byId), at).toBeLessThanOrEqual(c.minutes)
-        expect(estimateMinutes(plan, byId), at).toBeGreaterThanOrEqual(c.minutes * 0.6)
         // Only equipment you have; no exercise twice in a session; every set has a positive target.
         expect(exercises.every((e) => isAvailable(e, c.equipment)), at).toBe(true)
         expect(new Set(exercises.map((e) => e.id)).size, at).toBe(exercises.length)
@@ -89,10 +99,40 @@ describe('programme generator rules', () => {
         for (const s of exercises.filter((e) => e.pattern === 'stretch')) {
           expect(trained.some((p) => STRETCH_FOR[p].includes(s.id)), `${at} ${s.name}`).toBe(true)
         }
+        // Trainer rest periods: long for heavy strength sets, shorter for muscle, short for circuits.
+        const mainRests = plan.entries.filter((e, i) => !e.notes && !plan.entries[i + 1]?.supersetWithPrevious).map((e) => e.rest)
+        expect(new Set(mainRests), at).toEqual(new Set([{ strength: 150, muscle: 90, endurance: 60 }[spec.type]]))
         // Endurance circuits never include slow negatives.
         if (spec.type === 'endurance') expect(main.some((e) => e.id.includes('negative')), at).toBe(false)
       }
+
+      // Weekly volume per muscle group never goes past 20 hard sets, and legs and hips always get work.
+      const weekly = weeklySets(week.map((d) => d.plan))
+      expect(Math.max(...Object.values(weekly)), where).toBeLessThanOrEqual(20)
+      expect(weekly.legs, where).toBeGreaterThanOrEqual(6)
+      expect(weekly.hips, where).toBeGreaterThanOrEqual(6)
     }
+  })
+
+  it('gives every muscle group 10–20 hard sets a week, like a trainer would', () => {
+    for (const weekdays of [[0, 2, 4], [0, 1, 3, 4]]) {
+      for (const level of LEVELS) {
+        const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level, minutes: 60, sessions: [], now: NOW }
+        const weekly = weeklySets(generateProgramme(settings, weekdays, seeded(5)).map((d) => d.plan))
+        for (const group of ['push', 'pull', 'legs', 'hips']) {
+          expect(weekly[group], `${weekdays.length} days ${level} ${group}`).toBeGreaterThanOrEqual(10)
+          expect(weekly[group], `${weekdays.length} days ${level} ${group}`).toBeLessThanOrEqual(20)
+        }
+      }
+    }
+  })
+
+  it('when time is short, does fewer sets of everything before dropping a muscle group', () => {
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 45, sessions: [], now: NOW }
+    const [strength] = generateProgramme(settings, [0, 3], seeded(2))
+    const main = strength.plan.entries.filter((e) => !e.notes).map((e) => ({ e, ex: byId.get(e.exerciseId)! }))
+    expect(main.every(({ e }) => e.sets.length === 3), 'cut from 4 sets to 3').toBe(true)
+    expect(new Set(main.map(({ ex }) => GROUP_OF[ex.pattern!]))).toEqual(new Set(['push', 'pull', 'legs', 'hips']))
   })
 
   it('uses harder variations on strength days than on endurance days', () => {
@@ -108,7 +148,8 @@ describe('programme generator rules', () => {
   it('includes your own exercises once they are tagged', () => {
     const goblet: Exercise = { ...blankExercise(), name: 'Goblet squat', pattern: 'squat', level: 3, equipment: ['weights'] }
     const settings: GeneratorSettings = { exercises: [...LIBRARY, goblet], equipment: ['weights'], level: 'intermediate', minutes: 60, sessions: [], now: NOW }
-    const used = [1, 2, 3, 4, 5].some((seed) =>
+    // One of several squats at its difficulty, so it appears in some weeks, not all.
+    const used = Array.from({ length: 20 }, (_, i) => i + 1).some((seed) =>
       generateProgramme(settings, [0, 2, 4], seeded(seed)).some((d) => d.plan.entries.some((e) => e.exerciseId === goblet.id)),
     )
     expect(used).toBe(true)

@@ -8,11 +8,13 @@ export type { DayType }
  * 4-day weeks) with a different emphasis, so one week covers strength, muscle mass and muscle
  * endurance (daily undulating periodisation). Every session: warm-up for the joints the session
  * loads → (strength days) skill block → main work in push/pull pairs or a circuit → core finisher →
- * stretches for the muscles worked, sized to fit the time limit.
+ * stretches for the muscles worked. Main work follows weekly volume targets per muscle group, within
+ * the time limit.
  */
 
 export type Focus = 'full' | 'upper' | 'lower'
-export type DaySpec = { type: DayType; focus: Focus }
+/** `frequency`: sessions a week that train each of this day's muscle groups (spreads the weekly volume). */
+export type DaySpec = { type: DayType; focus: Focus; frequency: number }
 
 export type GeneratorSettings = {
   exercises: Exercise[]
@@ -27,23 +29,46 @@ export type GeneratedDay = { spec: DaySpec; plan: Plan }
 
 /** Which sessions make up the week, by number of training days. */
 export function splitFor(days: number): DaySpec[] {
-  if (days === 2) return [{ type: 'strength', focus: 'full' }, { type: 'muscle', focus: 'full' }]
+  if (days === 2) return [{ type: 'strength', focus: 'full', frequency: 2 }, { type: 'muscle', focus: 'full', frequency: 2 }]
   if (days === 3) {
-    return [{ type: 'strength', focus: 'full' }, { type: 'muscle', focus: 'full' }, { type: 'endurance', focus: 'full' }]
+    return [
+      { type: 'strength', focus: 'full', frequency: 3 },
+      { type: 'muscle', focus: 'full', frequency: 3 },
+      { type: 'endurance', focus: 'full', frequency: 3 },
+    ]
   }
   if (days === 4) {
     return [
-      { type: 'strength', focus: 'upper' },
-      { type: 'strength', focus: 'lower' },
-      { type: 'muscle', focus: 'upper' },
-      { type: 'endurance', focus: 'lower' },
+      { type: 'strength', focus: 'upper', frequency: 2 },
+      { type: 'strength', focus: 'lower', frequency: 2 },
+      { type: 'muscle', focus: 'upper', frequency: 2 },
+      { type: 'endurance', focus: 'lower', frequency: 2 },
     ]
   }
   throw new Error(`A programme has 2 to 4 training days, not ${days}`)
 }
 
+type MainPattern = 'squat' | 'lunge' | 'hinge' | 'hpush' | 'vpush' | 'hpull' | 'vpull'
+
+/** Muscle groups that weekly volume is counted for. */
+type Group = 'push' | 'pull' | 'legs' | 'hips'
+const GROUP: Record<MainPattern, Group> = {
+  hpush: 'push',
+  vpush: 'push',
+  hpull: 'pull',
+  vpull: 'pull',
+  squat: 'legs',
+  lunge: 'legs',
+  hinge: 'hips',
+}
+
+/** Hard sets per muscle group per week: the middle of the 10–20 range research supports for growth. */
+const WEEKLY_SETS = 14
+/** Fewest sets per exercise when a session is short of time; below this, exercises are dropped instead. */
+const MIN_SETS = 3
+
 /** Main-work patterns in priority order; pairs read push+pull (or quads+hips) so they superset well. */
-const MAIN: Record<DayType, Record<Focus, Pattern[]>> = {
+const MAIN: Record<DayType, Record<Focus, MainPattern[]>> = {
   strength: {
     full: ['vpull', 'vpush', 'squat', 'hinge', 'hpull', 'hpush', 'lunge'],
     upper: ['vpull', 'vpush', 'hpull', 'hpush', 'vpull', 'vpush'],
@@ -63,9 +88,16 @@ const MAIN: Record<DayType, Record<Focus, Pattern[]>> = {
 
 /** Sets, reps (or hold seconds) and rest after each pair/round, per day type. */
 const SCHEME: Record<DayType, { sets: number; reps: number; hold: number; rest: number; format: 'pairs' | 'circuit' }> = {
-  strength: { sets: 4, reps: 5, hold: 15, rest: 90, format: 'pairs' },
-  muscle: { sets: 3, reps: 10, hold: 30, rest: 60, format: 'pairs' },
+  strength: { sets: 4, reps: 5, hold: 15, rest: 150, format: 'pairs' }, // heavy sets need 2–3 min to recover
+  muscle: { sets: 3, reps: 10, hold: 30, rest: 90, format: 'pairs' },
   endurance: { sets: 3, reps: 15, hold: 45, rest: 60, format: 'circuit' },
+}
+
+/** How hard each set should be, by day type: a trainer's effort target (reps in reserve). */
+export const EFFORT: Record<DayType, string> = {
+  strength: 'Effort: stop each set with 2–3 good reps left in the tank.',
+  muscle: 'Effort: take each set close to failure, stopping 1–2 reps short.',
+  endurance: 'Effort: keep a steady pace and stop 1–2 reps short of failure.',
 }
 
 const BASE_LEVEL: Record<Level, number> = { beginner: 2, intermediate: 3, advanced: 4 }
@@ -142,9 +174,6 @@ const STRETCH_REST = 30
 
 const SECONDS_PER_REP = 3
 const CIRCUIT_SIZE = 3 // endurance work is split into short circuits (tri-sets) so rest comes every few minutes
-const MAX_CIRCUIT_EXERCISES = 12 // at most four circuits; leftover time goes to extra rounds
-/** Leftover time adds sets (pairs) or rounds (circuits), up to these limits. */
-const MAX_SETS = { pairs: 5, circuit: 4 }
 /** Slow eccentric drills: strength builders, never high-rep circuit work. */
 const NOT_FOR_CIRCUITS = new Set(['lib-negative-dip', 'lib-negative-pull-up'])
 /** Endurance reps for vertical pulls: 15 pull-ups a round is unrealistic for most people. */
@@ -249,36 +278,36 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   }
   const core: Block = { items: coreItems, sets: 3, rest: 45, note: 'Core' }
 
-  // Main work fills the remaining time.
+  // Main work: each muscle group's share of its weekly sets, within the time limit (sessions can end early).
   const scheme = SCHEME[spec.type]
   const fixed = [skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
   const budget = settings.minutes * 60 - WARMUP_SECONDS - STRETCH_SECONDS - fixed.reduce((s, b) => s + blockSeconds(b), 0)
   let sets = scheme.sets
+  const perGroup = Math.max(1, Math.round(WEEKLY_SETS / spec.frequency / scheme.sets))
+  const groupCount: Partial<Record<Group, number>> = {}
   const mainBlocks = (items: Block['items']): Block[] =>
     scheme.format === 'circuit'
       ? chunk(items, CIRCUIT_SIZE).map((c) => ({ items: c, sets, rest: scheme.rest, note: '' }))
       : chunk(items, 2).map((pair) => ({ items: pair, sets, rest: scheme.rest, note: '' }))
   const mainSeconds = (items: Block['items']) => mainBlocks(items).reduce((s, b) => s + blockSeconds(b), 0)
-  const mainItems: Block['items'] = []
-  // Two passes over the patterns: the second adds different exercises while time allows.
+  const mainItems: (Block['items'][number] & { rank: number })[] = []
+  // Two passes over the patterns, so a group can get a second, different exercise.
   const patterns = [...MAIN[spec.type][spec.focus], ...MAIN[spec.type][spec.focus]]
   for (const pattern of patterns) {
-    if (scheme.format === 'circuit' && mainItems.length === MAX_CIRCUIT_EXERCISES) break
+    const group = GROUP[pattern]
+    if ((groupCount[group] ?? 0) === perGroup) continue
     const target = clampLevel(levelFor(pattern) + LEVEL_OFFSET[spec.type])
     const exercise = pick(settings, pattern, target, dayIds, weekIds, random, undefined, scheme.format === 'circuit')
     if (!exercise) continue
-    if (mainSeconds([...mainItems, { exercise, amount: amountFor(exercise, spec.type) }]) > budget && mainItems.length >= 2) break
-    mainItems.push(take(exercise))
+    groupCount[group] = (groupCount[group] ?? 0) + 1
+    mainItems.push({ ...take(exercise), rank: groupCount[group] })
   }
   if (mainItems.length === 0) throw new Error('No exercises match your equipment for this session')
-  // Leftover time (e.g. no pulling equipment on an upper-body day) becomes extra sets or rounds.
-  while (sets < MAX_SETS[scheme.format]) {
-    sets += 1
-    if (mainSeconds(mainItems) > budget) {
-      sets -= 1
-      break
-    }
-  }
+  // Each group's first exercise, then each group's second…; if time is short, first do fewer sets of
+  // everything, then drop exercises from the end, so every group loses volume evenly.
+  mainItems.sort((a, b) => a.rank - b.rank)
+  while (sets > MIN_SETS && mainSeconds(mainItems) > budget) sets -= 1
+  while (mainItems.length > 2 && mainSeconds(mainItems) > budget) mainItems.pop()
 
   // Warm-up and stretches: one short circuit each for what this session actually trains, in training order.
   const worked = [...(skill ? [skill] : []), ...mainItems.map((i) => i.exercise), ...coreItems.map((i) => i.exercise)]

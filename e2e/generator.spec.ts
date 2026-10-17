@@ -11,7 +11,7 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
     await page.getByRole('button', { name: 'Generate', exact: true }).click()
     await expect(page.locator('.gen-day h3')).toHaveText(['Mon · Full Body · Strength', 'Wed · Full Body · Muscle', 'Fri · Full Body · Endurance'])
-    for (const text of await page.locator('.gen-day > p').allTextContents()) {
+    for (const text of await page.locator('.gen-day > p:first-of-type').allTextContents()) {
       const minutes = Number(text.match(/\d+/)![0])
       expect(minutes).toBeLessThanOrEqual(60)
       expect(minutes).toBeGreaterThanOrEqual(40)
@@ -20,6 +20,7 @@ test.describe('weekly programme generator', () => {
     await expect(strength.locator('.gen-item').first()).toContainText('Warm-up')
     await expect(strength.locator('.gen-item').last()).toContainText('Stretch')
     await expect(strength.locator('.gen-item.skill')).toHaveCount(1)
+    await expect(strength).toContainText('Effort: stop each set with 2–3 good reps left in the tank.')
     await expect(page.locator('.gen-day').nth(1).locator('.gen-item.skill')).toHaveCount(0)
   })
 
@@ -95,6 +96,7 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: 'Save programme' }).click()
     await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
     await expect(page.locator('.superset-label').first()).toHaveText('A1') // warm-up circuit
+    await expect(page.getByText('Effort: keep a steady pace and stop 1–2 reps short of failure.')).toBeVisible() // Friday: endurance
     await page.getByRole('button', { name: 'Finish & save' }).click()
     await page.getByRole('button', { name: 'Yes, save them as done' }).click()
     await expect(page.locator('.today-plan')).toContainText('✓ Completed')
