@@ -1,7 +1,7 @@
 export type Measure = 'reps' | 'seconds'
 
 /** Movement patterns the workout generator balances. */
-export type Pattern = 'warmup' | 'skill' | 'squat' | 'lunge' | 'hinge' | 'hpush' | 'vpush' | 'hpull' | 'vpull' | 'core'
+export type Pattern = 'warmup' | 'skill' | 'squat' | 'lunge' | 'hinge' | 'hpush' | 'vpush' | 'hpull' | 'vpull' | 'core' | 'stretch'
 
 export type Equipment = 'bar' | 'rings' | 'dip' | 'band' | 'weights'
 

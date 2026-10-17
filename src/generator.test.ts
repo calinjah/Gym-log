@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, splitFor, WARMUP_FOR, type GeneratorSettings } from './generator'
+import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, splitFor, STRETCH_FOR, WARMUP_FOR, type GeneratorSettings } from './generator'
 import { LIBRARY } from './library'
 import { blankExercise } from './store'
 import type { Equipment, Exercise, Level, Plan } from './types'
@@ -45,7 +45,7 @@ describe('programme generator rules', () => {
         const at = `${where} ${plan.name}`
         const exercises = plan.entries.map((_, i) => ex(plan, i))
         const patterns = exercises.map((e) => e.pattern)
-        const main = exercises.filter((e) => !['warmup', 'skill', 'core'].includes(e.pattern ?? ''))
+        const main = exercises.filter((e) => !['warmup', 'skill', 'core', 'stretch'].includes(e.pattern ?? ''))
 
         // Fits the chosen time, and isn't half empty.
         expect(estimateMinutes(plan, byId), at).toBeLessThanOrEqual(c.minutes)
@@ -54,12 +54,15 @@ describe('programme generator rules', () => {
         expect(exercises.every((e) => isAvailable(e, c.equipment)), at).toBe(true)
         expect(new Set(exercises.map((e) => e.id)).size, at).toBe(exercises.length)
         expect(plan.entries.every((e) => e.sets.length > 0 && e.sets.every((s) => s.reps > 0 && !s.done)), at).toBe(true)
-        // Order: warm-up first, skill (strength days only) next, core last.
+        // Order: warm-up first, skill (strength days only) next, then core, stretches last.
         expect(patterns[0], at).toBe('warmup')
         const firstOther = patterns.findIndex((p) => p !== 'warmup')
         expect(patterns.slice(firstOther).includes('warmup'), at).toBe(false)
         expect(patterns.includes('skill'), at).toBe(spec.type === 'strength')
-        expect(patterns[patterns.length - 1], at).toBe('core')
+        const firstStretch = patterns.indexOf('stretch')
+        expect(firstStretch, at).toBeGreaterThan(0)
+        expect(patterns.slice(firstStretch).every((p) => p === 'stretch'), at).toBe(true)
+        expect(patterns[firstStretch - 1], at).toBe('core')
         // Enough main work, balanced across push, pull and legs where the equipment allows.
         expect(main.length, at).toBeGreaterThanOrEqual(2)
         const has = (group: string[]) => main.some((e) => group.includes(e.pattern!))
@@ -74,12 +77,17 @@ describe('programme generator rules', () => {
           if (i > 0 && e.supersetWithPrevious) groupSizes[groupSizes.length - 1]++
           else groupSizes.push(1)
         })
-        const mainGroups = groupSizes.slice(1) // after the warm-up circuit
+        const mainGroups = groupSizes.slice(1, -1) // between the warm-up and stretch circuits
         expect(Math.max(...mainGroups), at).toBeLessThanOrEqual(spec.type === 'endurance' ? 3 : 2)
         // Every warm-up prepares a movement this session trains.
         const worked = exercises.map((e) => e.pattern).filter((p): p is keyof typeof WARMUP_FOR => !!p && p in WARMUP_FOR)
         for (const w of exercises.filter((e) => e.pattern === 'warmup')) {
           expect(worked.some((p) => WARMUP_FOR[p].includes(w.id)), `${at} ${w.name}`).toBe(true)
+        }
+        // Every stretch works a muscle group this session trained (core included).
+        const trained = exercises.map((e) => e.pattern).filter((p): p is keyof typeof STRETCH_FOR => !!p && p in STRETCH_FOR)
+        for (const s of exercises.filter((e) => e.pattern === 'stretch')) {
+          expect(trained.some((p) => STRETCH_FOR[p].includes(s.id)), `${at} ${s.name}`).toBe(true)
         }
         // Endurance circuits never include slow negatives.
         if (spec.type === 'endurance') expect(main.some((e) => e.id.includes('negative')), at).toBe(false)
@@ -91,7 +99,7 @@ describe('programme generator rules', () => {
     const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
     const [strength, , endurance] = generateProgramme(settings, [0, 2, 4], seeded(7))
     const avg = (p: Plan) => {
-      const main = p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => !['warmup', 'skill', 'core'].includes(e.pattern!))
+      const main = p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => !['warmup', 'skill', 'core', 'stretch'].includes(e.pattern!))
       return main.reduce((s, e) => s + e.level, 0) / main.length
     }
     expect(avg(strength.plan)).toBeGreaterThan(avg(endurance.plan))
@@ -118,6 +126,21 @@ describe('programme generator rules', () => {
     expect(warmups(upper).every((id) => upperPrep.has(id) && !legPrep.has(id))).toBe(true)
     expect(warmups(lower)).toHaveLength(5)
     expect(warmups(lower).every((id) => legPrep.has(id) && !upperPrep.has(id))).toBe(true)
+  })
+
+  it('stretches the muscles each session worked: upper body on upper days, legs on leg days', () => {
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const week = generateProgramme(settings, [0, 1, 3, 4], seeded(3))
+    const stretches = (p: Plan) => p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => e.pattern === 'stretch').map((e) => e.id)
+    const upper = new Set([...STRETCH_FOR.vpull, ...STRETCH_FOR.hpull, ...STRETCH_FOR.vpush, ...STRETCH_FOR.hpush, ...STRETCH_FOR.skill])
+    const legs = new Set([...STRETCH_FOR.squat, ...STRETCH_FOR.lunge, ...STRETCH_FOR.hinge])
+    const upperDay = week.find((d) => d.spec.focus === 'upper' && d.spec.type === 'muscle')!.plan
+    const lowerDay = week.find((d) => d.spec.focus === 'lower' && d.spec.type === 'endurance')!.plan // no skill block
+    expect(stretches(upperDay)).toHaveLength(4)
+    expect(stretches(upperDay).every((id) => upper.has(id) || STRETCH_FOR.core.includes(id))).toBe(true)
+    expect(stretches(lowerDay)).toHaveLength(4)
+    expect(stretches(lowerDay).every((id) => (legs.has(id) && !upper.has(id)) || STRETCH_FOR.core.includes(id))).toBe(true)
+    expect(upperDay.entries.at(-1)!.sets.map((s) => s.reps)).toEqual([30]) // one 30 s hold each
   })
 
   it('rejects unsupported numbers of training days', () => {

@@ -18,6 +18,7 @@ test.describe('weekly programme generator', () => {
     }
     const strength = page.locator('.gen-day').first()
     await expect(strength.locator('.gen-item').first()).toContainText('Warm-up')
+    await expect(strength.locator('.gen-item').last()).toContainText('Stretch')
     await expect(strength.locator('.gen-item.skill')).toHaveCount(1)
     await expect(page.locator('.gen-day').nth(1).locator('.gen-item.skill')).toHaveCount(0)
   })

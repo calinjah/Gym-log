@@ -90,17 +90,18 @@ describe('finishWorkout', () => {
         entry('lib-band-pull-apart', sets(1, 12)),
         entry('lib-pull-up', sets(2, 5)),
         entry('lib-parallel-bar-dip', sets(2, 5)),
+        entry('lib-lat-stretch', sets(1, 30)),
       ],
     })
 
-  it('progresses only the exercises you fully completed, never warm-ups', () => {
+  it('progresses only the exercises you fully completed, never warm-ups or stretches', () => {
     const d = data({ plans: [generated()] })
     startSession(d, 'Strength', d.plans[0].entries, 'gen')
     for (const e of d.active!.entries) for (const s of e.sets) s.done = true
     d.active!.entries[2].sets[1].reps = 4 // one dip short
     finishWorkout(d, false)
     expect(d.progressNotes).toEqual(['Pull-up: 2×5 → 2×6'])
-    expect(d.plans[0].entries.map((e) => e.sets[0].reps)).toEqual([12, 6, 5])
+    expect(d.plans[0].entries.map((e) => e.sets[0].reps)).toEqual([12, 6, 5, 30])
   })
 
   it('leaves your own plans exactly as written', () => {

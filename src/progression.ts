@@ -95,7 +95,7 @@ export function finishWorkout(d: Data, keepUnticked: boolean) {
   for (const entry of plan.entries) {
     const exercise = byId.get(entry.exerciseId)
     if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
-    if (exercise.pattern === 'warmup') continue
+    if (exercise.pattern === 'warmup' || exercise.pattern === 'stretch') continue
     const done = session.entries.find((e) => e.exerciseId === entry.exerciseId)?.sets ?? []
     if (!hitTarget(entry.sets, done)) continue
     const note = progressEntry(entry, exercise, plan.dayType, exercises, d.equipment, d.unit, planIds)

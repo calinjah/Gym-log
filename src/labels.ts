@@ -11,6 +11,7 @@ export const PATTERN_LABELS: Record<Pattern, string> = {
   hpull: 'Horizontal pull (row)',
   vpull: 'Vertical pull',
   core: 'Core',
+  stretch: 'Stretch',
 }
 
 export const EQUIPMENT_LABELS: Record<Equipment, string> = {
