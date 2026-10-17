@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LIBRARY } from './library'
 import { finishWorkout, hitTarget, nextHarder, progressEntry } from './progression'
-import { startSession } from './store'
+import { startPlan, startSession } from './store'
 import { data, entry, plan, set } from './test/fixtures'
 import type { DayType, Equipment, ExerciseEntry } from './types'
 
@@ -102,6 +102,25 @@ describe('finishWorkout', () => {
     finishWorkout(d, false)
     expect(d.progressNotes).toEqual(['Pull-up: 2×5 → 2×6'])
     expect(d.plans[0].entries.map((e) => e.sets[0].reps)).toEqual([12, 6, 5, 30])
+  })
+
+  it('a deload-week workout (half the sets) never raises the targets', () => {
+    const d = data({ plans: [generated()], programmeStart: '2026-09-07' })
+    startPlan(d, d.plans[0], '2026-10-07') // the 5th week
+    for (const e of d.active!.entries) for (const s of e.sets) s.done = true
+    finishWorkout(d, false)
+    expect(d.progressNotes).toEqual([])
+    expect(d.plans[0].entries.map((e) => e.sets.length)).toEqual([1, 2, 2, 1])
+  })
+
+  it('never progresses ramp-up sets', () => {
+    const p = plan({ id: 'gen', dayType: 'strength', entries: [entry('lib-push-up', sets(1, 5), { notes: 'Ramp-up' }), entry('lib-pull-up', sets(2, 5))] })
+    const d = data({ plans: [p] })
+    startSession(d, 'Strength', p.entries, 'gen')
+    for (const e of d.active!.entries) for (const s of e.sets) s.done = true
+    finishWorkout(d, false)
+    expect(d.progressNotes).toEqual(['Pull-up: 2×5 → 2×6'])
+    expect(d.plans[0].entries[0].sets[0].reps).toBe(5)
   })
 
   it('leaves your own plans exactly as written', () => {

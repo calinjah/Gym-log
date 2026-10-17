@@ -174,14 +174,19 @@ const STRETCH_REST = 30
 
 const SECONDS_PER_REP = 3
 const CIRCUIT_SIZE = 3 // endurance work is split into short circuits (tri-sets) so rest comes every few minutes
-/** Slow eccentric drills: strength builders, never high-rep circuit work. */
-const NOT_FOR_CIRCUITS = new Set(['lib-negative-dip', 'lib-negative-pull-up'])
+/** Slow eccentric drills: tiring strength builders, never circuit work or ramp-ups. */
+const SLOW_NEGATIVES = new Set(['lib-negative-dip', 'lib-negative-pull-up'])
 /** Endurance reps for vertical pulls: 15 pull-ups a round is unrealistic for most people. */
 const ENDURANCE_PULL_REPS = 8
 const SETUP_SECONDS = 30 // moving to and setting up each exercise
 /** Time set aside for the warm-up before main work is sized: it is chosen afterwards, to match it. */
 const WARMUP_SECONDS = WARMUP_SIZE * (amountForWarmup('reps') * SECONDS_PER_REP + SETUP_SECONDS) + WARMUP_REST
 const STRETCH_SECONDS = STRETCH_SIZE * (STRETCH_HOLD + SETUP_SECONDS) + STRETCH_REST
+
+/** Strength days: one set of an easier variation of each exercise in the first superset, right before it. */
+export const RAMP_UP_NOTE = 'Ramp-up'
+const RAMP_UP_REST = 60
+const RAMP_UP_SECONDS = 2 * (SCHEME.strength.reps * SECONDS_PER_REP + SETUP_SECONDS) + RAMP_UP_REST
 
 type Block = { items: { exercise: Exercise; amount: number }[]; sets: number; rest: number; note: string }
 
@@ -229,13 +234,24 @@ function pick(
 ): Exercise | null {
   const scored = settings.exercises
     .filter((e) => e.pattern === pattern && isAvailable(e, settings.equipment) && !dayIds.has(e.id))
-    .filter((e) => !(circuit && NOT_FOR_CIRCUITS.has(e.id)))
+    .filter((e) => !(circuit && SLOW_NEGATIVES.has(e.id)))
     .map((e) => ({
       e,
       score: Math.abs(e.level - target) * 2 + (weekIds.has(e.id) ? 1 : 0) + (e.measure === avoidMeasure ? 3 : 0) + random() * 0.9,
     }))
     .sort((a, b) => a.score - b.score)
   return scored[0]?.e ?? null
+}
+
+/** The hardest exercise for the same movement that is easier than `main` (random among ties), for a ramp-up set. */
+function easierThan(settings: GeneratorSettings, main: Exercise, dayIds: Set<string>, random: () => number): Exercise | null {
+  const options = settings.exercises.filter(
+    (e) => e.pattern === main.pattern && e.level < main.level && isAvailable(e, settings.equipment) && !dayIds.has(e.id) && !SLOW_NEGATIVES.has(e.id),
+  )
+  if (options.length === 0) return null
+  const top = Math.max(...options.map((e) => e.level))
+  const best = options.filter((e) => e.level === top)
+  return best[Math.floor(random() * best.length)]
 }
 
 function toEntries(blocks: Block[], sessions: Session[]): ExerciseEntry[] {
@@ -281,7 +297,8 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   // Main work: each muscle group's share of its weekly sets, within the time limit (sessions can end early).
   const scheme = SCHEME[spec.type]
   const fixed = [skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
-  const budget = settings.minutes * 60 - WARMUP_SECONDS - STRETCH_SECONDS - fixed.reduce((s, b) => s + blockSeconds(b), 0)
+  const rampUpSeconds = spec.type === 'strength' ? RAMP_UP_SECONDS : 0
+  const budget = settings.minutes * 60 - WARMUP_SECONDS - STRETCH_SECONDS - rampUpSeconds - fixed.reduce((s, b) => s + blockSeconds(b), 0)
   let sets = scheme.sets
   const perGroup = Math.max(1, Math.round(WEEKLY_SETS / spec.frequency / scheme.sets))
   const groupCount: Partial<Record<Group, number>> = {}
@@ -319,7 +336,15 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   const stretchItems = routineFor(STRETCH_FOR, worked, STRETCH_SIZE, byId, settings.equipment).map(take)
   const stretches: Block = { items: stretchItems, sets: 1, rest: STRETCH_REST, note: 'Stretch' }
 
-  const blocks = [warmup, ...(skillBlock ? [skillBlock] : []), ...mainBlocks(mainItems), core, stretches].filter((b) => b.items.length > 0)
+  // Ramp-up: an easier variation of each exercise in the first heavy superset, so it starts primed.
+  const main = mainBlocks(mainItems)
+  const rampUpItems =
+    spec.type === 'strength'
+      ? main[0].items.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take)
+      : []
+  const rampUp: Block = { items: rampUpItems, sets: 1, rest: RAMP_UP_REST, note: RAMP_UP_NOTE }
+
+  const blocks = [warmup, ...(skillBlock ? [skillBlock] : []), rampUp, ...main, core, stretches].filter((b) => b.items.length > 0)
   return {
     id: newId(),
     name: `${FOCUS_NAMES[spec.focus]} · ${DAY_NAMES[spec.type]}`,

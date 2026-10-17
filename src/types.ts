@@ -58,7 +58,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 13
+  version: 14
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -72,4 +72,5 @@ export type Data = {
   level: Level // training level, for the generator
   beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)
   progressNotes: string[] // what auto-progression changed after the last workout; shown until dismissed
+  programmeStart: string | null // yyyy-mm-dd the generated programme was saved; its weeks (and deloads) count from here
 }

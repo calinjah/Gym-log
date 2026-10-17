@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, regenerateDay, type GeneratedDay, type GeneratorSettings } from '../generator'
+import { DELOAD_EVERY } from '../deload'
+import { dayKey } from '../format'
 import { EQUIPMENT_LABELS, LEVEL_LABELS } from '../labels'
 import { allExercises, deletePlan, exerciseMap, type Update } from '../store'
 import { supersetLabels } from '../superset'
@@ -64,6 +66,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
     if (!week) throw new Error('No programme to save')
     update((d) => {
       for (const p of d.plans.filter((p) => p.dayType !== null)) deletePlan(d, p.id)
+      d.programmeStart = dayKey(new Date(now)) // week 1 starts now; every 5th week is a deload
       for (const { plan } of week) {
         if (onCalendar) {
           for (const p of d.plans) p.weekdays = p.weekdays.filter((w) => !plan.weekdays.includes(w))
@@ -197,6 +200,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
           {existingGenerated.length > 0 && (
             <p className="muted small">Saving replaces your previous generated programme ({existingGenerated.length} plans).</p>
           )}
+          <p className="muted small">Every {DELOAD_EVERY}th week is a lighter deload week: same exercises, about half the sets.</p>
           <button className="primary" onClick={save}>
             Save programme
           </button>

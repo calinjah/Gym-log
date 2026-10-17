@@ -3,10 +3,11 @@ import { backupStatus, exportData, needsBackup } from '../backup'
 import { dayKey } from '../format'
 import { SessionDateField } from '../components/SessionDateField'
 import { WorkoutEditor } from '../components/WorkoutEditor'
+import { DELOAD_EFFORT, isDeloadWeek } from '../deload'
 import { EFFORT } from '../generator'
 import { GeneratorView } from './GeneratorView'
 import { finishWorkout } from '../progression'
-import { deletePlan, exerciseMap, newId, planCompletedOn, scheduledPlan, startSession, toggleWeekday, type Update } from '../store'
+import { deletePlan, exerciseMap, newId, planCompletedOn, scheduledPlan, startPlan, startSession, toggleWeekday, type Update } from '../store'
 import type { Data, Session } from '../types'
 
 type Props = { data: Data; update: Update }
@@ -28,6 +29,7 @@ export function WorkoutView({ data, update }: Props) {
       })
 
     const dayType = data.plans.find((p) => p.id === active.planId)?.dayType ?? null // effort target for programme days
+    const deload = dayType !== null && isDeloadWeek(data.programmeStart, dayKey(new Date(active.startedAt)))
     const sets = active.entries.flatMap((e) => e.sets)
     const unticked = sets.filter((s) => !s.done).length
     const finish = (keepUnticked: boolean) => {
@@ -39,7 +41,7 @@ export function WorkoutView({ data, update }: Props) {
       <>
         <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live>
           <SessionDateField session={active} edit={editActive} />
-          {dayType && <p className="muted small">{EFFORT[dayType]}</p>}
+          {dayType && <p className="muted small">{deload ? DELOAD_EFFORT : EFFORT[dayType]}</p>}
         </WorkoutEditor>
         {confirmingFinish ? (
           <div className="card form">
@@ -146,6 +148,7 @@ export function WorkoutView({ data, update }: Props) {
         <div className="card today-plan">
           <span>
             Today: <strong>{todaysPlan.name || 'Untitled plan'}</strong>
+            {todaysPlan.dayType && isDeloadWeek(data.programmeStart, today) && <span className="tag">deload week</span>}
           </span>
           {planCompletedOn(data, todaysPlan.id, today) ? (
             <span className="completed">✓ Completed</span>
@@ -153,7 +156,7 @@ export function WorkoutView({ data, update }: Props) {
             <button
               className="primary"
               disabled={todaysPlan.entries.length === 0}
-              onClick={() => update((d) => startSession(d, todaysPlan.name, todaysPlan.entries, todaysPlan.id))}
+              onClick={() => update((d) => startPlan(d, todaysPlan, today))}
             >
               Start
             </button>
@@ -216,7 +219,7 @@ export function WorkoutView({ data, update }: Props) {
               <button
                 className="primary"
                 disabled={p.entries.length === 0}
-                onClick={() => update((d) => startSession(d, p.name, p.entries, p.id))}
+                onClick={() => update((d) => startPlan(d, p, today))}
               >
                 Start
               </button>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { deloadEntries, isDeloadWeek } from './deload'
 import { dayKey } from './format'
 import { LIBRARY } from './library'
 import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types'
@@ -10,7 +11,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 13,
+  version: 14,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -23,6 +24,7 @@ const EMPTY: Data = {
   level: 'intermediate',
   beepVolume: DEFAULT_BEEP_VOLUME,
   progressNotes: [],
+  programmeStart: null,
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -83,7 +85,9 @@ export function parseData(json: string): Data {
     const { bodyweight: _removed, ...rest } = data
     data = { ...rest, version: 13 } as Raw
   }
-  if (data.version !== 13 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  // v14: programme weeks are counted for deloads; an existing programme starts counting when it's next saved
+  if (data.version === 13) data = { ...data, version: 14, programmeStart: null }
+  if (data.version !== 14 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -144,6 +148,12 @@ export function isExerciseUsed(data: Data, exerciseId: string): boolean {
 }
 
 /** Begin a new in-progress workout, starting now, with a copy of the given exercises (all sets unticked). */
+/** Start a workout from a plan. In a programme's deload week, generated plans start with about half the sets. */
+export function startPlan(d: Data, plan: Plan, today: string) {
+  const entries = plan.dayType !== null && isDeloadWeek(d.programmeStart, today) ? deloadEntries(plan.entries) : plan.entries
+  startSession(d, plan.name, entries, plan.id)
+}
+
 export function startSession(d: Data, name: string, entries: ExerciseEntry[], planId: string | null) {
   if (d.active) throw new Error('A workout is already in progress')
   d.active = {

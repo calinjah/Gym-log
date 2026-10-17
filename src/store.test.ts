@@ -11,6 +11,7 @@ import {
   scheduledPlan,
   sessionsWithExercise,
   setDayPlan,
+  startPlan,
   startSession,
   toggleWeekday,
   weekdayOf,
@@ -36,7 +37,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(13)
+    expect(d.version).toBe(14)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -87,6 +88,29 @@ describe('parseData migrations', () => {
   it('explains clearly when the file is not gym data', () => {
     expect(() => parseData('null')).toThrow('Not a valid gym data file')
     expect(() => parseData('[]')).toThrow('Not a valid gym data file')
+  })
+})
+
+describe('starting a plan in a deload week', () => {
+  const programme = (dayType: 'strength' | null) => plan({ dayType, entries: [entry('lib-pull-up', [set(5), set(5), set(5), set(5)])] })
+
+  it('gives a generated plan half the sets in the 5th programme week', () => {
+    const p = programme('strength')
+    const d = data({ plans: [p], programmeStart: '2026-09-07' }) // 4 weeks before the week of 5 Oct
+    startPlan(d, p, '2026-10-07')
+    expect(d.active?.entries[0].sets).toHaveLength(2)
+    expect(p.entries[0].sets).toHaveLength(4)
+  })
+
+  it('starts plans normally in other weeks, and never changes your own plans', () => {
+    const generated = programme('strength')
+    const d = data({ plans: [generated], programmeStart: '2026-09-14' })
+    startPlan(d, generated, '2026-10-07')
+    expect(d.active?.entries[0].sets).toHaveLength(4)
+    const own = programme(null)
+    const d2 = data({ plans: [own], programmeStart: '2026-09-07' })
+    startPlan(d2, own, '2026-10-07')
+    expect(d2.active?.entries[0].sets).toHaveLength(4)
   })
 })
 
@@ -264,11 +288,20 @@ describe('v11 → v12', () => {
   })
 })
 
+describe('v13 → v14', () => {
+  it('adds the programme start date, unset until the programme is next saved', () => {
+    const { programmeStart: _, ...v13 } = { ...data(), version: 13 }
+    const d = parseData(JSON.stringify(v13))
+    expect(d.version).toBe(14)
+    expect(d.programmeStart).toBeNull()
+  })
+})
+
 describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(13)
+    expect(d.version).toBe(14)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

@@ -1,4 +1,4 @@
-import { appData, entry, expect, openApp, planOf, saved, test } from './helpers'
+import { appData, entry, expect, openApp, planOf, saved, test, TODAY } from './helpers'
 
 const myPlans = [
   planOf('pl', 'Push & Legs', [entry('lib-push-up', [{ reps: 10, done: false }])], [2]),
@@ -21,6 +21,9 @@ test.describe('weekly programme generator', () => {
     await expect(strength.locator('.gen-item').last()).toContainText('Stretch')
     await expect(strength.locator('.gen-item.skill')).toHaveCount(1)
     await expect(strength).toContainText('Effort: stop each set with 2–3 good reps left in the tank.')
+    await expect(strength.locator('.gen-item.ramp-up')).not.toHaveCount(0) // easier set before the first heavy superset
+    await expect(page.locator('.gen-day').nth(1).locator('.gen-item.ramp-up')).toHaveCount(0)
+    await expect(page.getByText('Every 5th week is a lighter deload week: same exercises, about half the sets.')).toBeVisible()
     await expect(page.locator('.gen-day').nth(1).locator('.gen-item.skill')).toHaveCount(0)
   })
 
@@ -100,6 +103,34 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: 'Finish & save' }).click()
     await page.getByRole('button', { name: 'Yes, save them as done' }).click()
     await expect(page.locator('.today-plan')).toContainText('✓ Completed')
+  })
+})
+
+test.describe('deload week', () => {
+  const programmeDay = planOf('gen', 'Full Body · Strength', [entry('lib-pull-up', [1, 2, 3, 4].map(() => ({ reps: 5, done: false })))], [4], 'strength')
+
+  test('saving a programme starts its week count today', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await page.getByRole('button', { name: 'Generate', exact: true }).click()
+    await page.getByRole('button', { name: 'Save programme' }).click()
+    expect((await saved(page)).programmeStart).toBe(TODAY)
+  })
+
+  test('in the 5th week a programme day starts with half the sets and an easier effort target', async ({ page }) => {
+    await openApp(page, appData({ plans: [programmeDay], programmeStart: '2026-09-10' })) // 4 weeks before this week
+    await expect(page.locator('.today-plan')).toContainText('deload week')
+    await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
+    await expect(page.getByLabel(/Set \d+ done/)).toHaveCount(2)
+    await expect(page.getByText(/^Deload week: about half the sets/)).toBeVisible()
+    expect((await saved(page)).plans[0].entries[0].sets).toHaveLength(4) // the plan keeps all its sets
+  })
+
+  test('other weeks start the full session', async ({ page }) => {
+    await openApp(page, appData({ plans: [programmeDay], programmeStart: '2026-09-17' }))
+    await expect(page.locator('.today-plan')).not.toContainText('deload week')
+    await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
+    await expect(page.getByLabel(/Set \d+ done/)).toHaveCount(4)
   })
 })
 

@@ -625,6 +625,7 @@ input[type='date']::-webkit-date-and-time-value {
   border-top: 1px solid var(--border);
 }
 .gen-item.warm-up,
+.gen-item.ramp-up,
 .gen-item.core,
 .gen-item.stretch {
   opacity: 0.75;

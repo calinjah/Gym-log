@@ -28,7 +28,7 @@ function weeklySets(plans: Plan[]): Record<string, number> {
   const sets: Record<string, number> = { push: 0, pull: 0, legs: 0, hips: 0 }
   for (const p of plans) for (const e of p.entries) {
     const group = GROUP_OF[byId.get(e.exerciseId)!.pattern!]
-    if (group) sets[group] += e.sets.length
+    if (group && e.notes !== 'Ramp-up') sets[group] += e.sets.length // ramp-ups are easy, not hard sets
   }
   return sets
 }
@@ -99,6 +99,19 @@ describe('programme generator rules', () => {
         for (const s of exercises.filter((e) => e.pattern === 'stretch')) {
           expect(trained.some((p) => STRETCH_FOR[p].includes(s.id)), `${at} ${s.name}`).toBe(true)
         }
+        // Strength days ramp up right before the first superset: one set of an easier variation of each.
+        const ramp = plan.entries.flatMap((e, i) => (e.notes === 'Ramp-up' ? [i] : []))
+        if (spec.type === 'strength') {
+          expect(ramp.length, at).toBeGreaterThan(0)
+          const firstMain = plan.entries.findIndex((e) => !e.notes)
+          expect(ramp[ramp.length - 1] + 1, at).toBe(firstMain)
+          const firstPair = plan.entries.slice(firstMain, firstMain + 2).map((e) => byId.get(e.exerciseId)!)
+          for (const i of ramp) {
+            const easy = ex(plan, i)
+            expect(plan.entries[i].sets, at).toHaveLength(1)
+            expect(firstPair.some((m) => m.pattern === easy.pattern && m.level > easy.level), `${at} ${easy.name}`).toBe(true)
+          }
+        } else expect(ramp, at).toEqual([])
         // Trainer rest periods: long for heavy strength sets, shorter for muscle, short for circuits.
         const mainRests = plan.entries.filter((e, i) => !e.notes && !plan.entries[i + 1]?.supersetWithPrevious).map((e) => e.rest)
         expect(new Set(mainRests), at).toEqual(new Set([{ strength: 150, muscle: 90, endurance: 60 }[spec.type]]))
