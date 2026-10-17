@@ -9,6 +9,9 @@ import { WorkoutView } from './views/WorkoutView'
 const TABS = ['Workout', 'History', 'Exercises', 'Settings'] as const
 type Tab = (typeof TABS)[number]
 
+/** Tapping the tab you're on (or double-tapping any tab) scrolls back to the top, on every screen of that tab. */
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+
 export default function App() {
   const [data, update] = useData()
   const [tab, setTab] = useState<Tab>('Workout')
@@ -25,7 +28,7 @@ export default function App() {
       {data.restUntil !== null && <RestTimer restUntil={data.restUntil} beepVolume={data.beepVolume} update={update} />}
       <nav className="tabs">
         {TABS.map((t) => (
-          <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
+          <button key={t} className={t === tab ? 'on' : ''} onClick={() => (t === tab ? scrollToTop() : setTab(t))}>
             {t}
             {t === 'Workout' && data.active && <span className="dot" aria-label="in progress" />}
           </button>
