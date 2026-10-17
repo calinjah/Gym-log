@@ -126,6 +126,9 @@ const groups: Record<string, Row[]> = {
     ['Arm Circles', 'Shoulders', 'warmup', 1, [], 'seconds'],
     ['Cat-Cow', 'Spine mobility', 'warmup', 1, []],
     ['Scapular Push-up', 'Serratus, scapulae', 'warmup', 1, []],
+    ['Leg Swing', 'Hips, hamstrings', 'warmup', 1, []],
+    ['Hip Circle', 'Hips', 'warmup', 1, []],
+    ['Ankle Rock', 'Ankles, calves', 'warmup', 1, []],
   ],
   Conditioning: [
     ['Burpee', 'Full body', null, 2, []],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, splitFor, type GeneratorSettings } from './generator'
+import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, splitFor, WARMUP_FOR, type GeneratorSettings } from './generator'
 import { LIBRARY } from './library'
 import { blankExercise } from './store'
 import type { Equipment, Exercise, Level, Plan } from './types'
@@ -76,6 +76,11 @@ describe('programme generator rules', () => {
         })
         const mainGroups = groupSizes.slice(1) // after the warm-up circuit
         expect(Math.max(...mainGroups), at).toBeLessThanOrEqual(spec.type === 'endurance' ? 3 : 2)
+        // Every warm-up prepares a movement this session trains.
+        const worked = exercises.map((e) => e.pattern).filter((p): p is keyof typeof WARMUP_FOR => !!p && p in WARMUP_FOR)
+        for (const w of exercises.filter((e) => e.pattern === 'warmup')) {
+          expect(worked.some((p) => WARMUP_FOR[p].includes(w.id)), `${at} ${w.name}`).toBe(true)
+        }
         // Endurance circuits never include slow negatives.
         if (spec.type === 'endurance') expect(main.some((e) => e.id.includes('negative')), at).toBe(false)
       }
@@ -99,6 +104,20 @@ describe('programme generator rules', () => {
       generateProgramme(settings, [0, 2, 4], seeded(seed)).some((d) => d.plan.entries.some((e) => e.exerciseId === goblet.id)),
     )
     expect(used).toBe(true)
+  })
+
+  it('warms up the joints each session loads: upper body on upper days, legs on leg days', () => {
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const week = generateProgramme(settings, [0, 1, 3, 4], seeded(3))
+    const warmups = (p: Plan) => p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => e.pattern === 'warmup').map((e) => e.id)
+    const upperPrep = new Set([...WARMUP_FOR.vpull, ...WARMUP_FOR.hpull, ...WARMUP_FOR.vpush, ...WARMUP_FOR.hpush, ...WARMUP_FOR.skill])
+    const legPrep = new Set([...WARMUP_FOR.squat, ...WARMUP_FOR.lunge, ...WARMUP_FOR.hinge])
+    const upper = week.find((d) => d.spec.focus === 'upper' && d.spec.type === 'muscle')!.plan
+    const lower = week.find((d) => d.spec.focus === 'lower' && d.spec.type === 'endurance')!.plan // no skill block
+    expect(warmups(upper)).toHaveLength(5)
+    expect(warmups(upper).every((id) => upperPrep.has(id) && !legPrep.has(id))).toBe(true)
+    expect(warmups(lower)).toHaveLength(5)
+    expect(warmups(lower).every((id) => legPrep.has(id) && !upperPrep.has(id))).toBe(true)
   })
 
   it('rejects unsupported numbers of training days', () => {

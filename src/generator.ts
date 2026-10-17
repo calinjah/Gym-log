@@ -6,8 +6,9 @@ export type { DayType }
 /**
  * Rules-based weekly programme generator. Each day trains the whole body (or upper/lower on
  * 4-day weeks) with a different emphasis, so one week covers strength, muscle mass and muscle
- * endurance (daily undulating periodisation). Every session: band warm-up → (strength days) skill
- * block → main work in push/pull pairs or a circuit → core finisher, sized to fit the time limit.
+ * endurance (daily undulating periodisation). Every session: warm-up for the joints the session
+ * loads → (strength days) skill block → main work in push/pull pairs or a circuit → core finisher,
+ * sized to fit the time limit.
  */
 
 export type Focus = 'full' | 'upper' | 'lower'
@@ -106,14 +107,19 @@ function lastWeight(sessions: Session[], exerciseId: string): number {
 /** Harder variations for strength, easier ones for high-rep endurance work. */
 const LEVEL_OFFSET: Record<DayType, number> = { strength: 1, muscle: 0, endurance: -1 }
 
-/** Warm-up recipe: shoulders ×2, scapulae, hips, wrists — first available of each group. */
-const WARMUP_GROUPS: string[][] = [
-  ['lib-band-dislocate', 'lib-band-pull-apart', 'lib-arm-circles'],
-  ['lib-band-face-pull', 'lib-band-external-rotation', 'lib-band-pull-apart', 'lib-arm-circles'],
-  ['lib-scapular-pull-up', 'lib-scapular-push-up', 'lib-active-hang'],
-  ['lib-banded-glute-bridge', 'lib-banded-squat', 'lib-cat-cow'],
-  ['lib-wrist-circles'],
-]
+/** Warm-ups that prepare each working movement, most useful first. Core needs none of its own. */
+export const WARMUP_FOR: Record<Exclude<Pattern, 'warmup' | 'core'>, string[]> = {
+  skill: ['lib-wrist-circles', 'lib-band-dislocate', 'lib-scapular-push-up', 'lib-arm-circles'],
+  vpull: ['lib-scapular-pull-up', 'lib-active-hang', 'lib-band-face-pull', 'lib-band-pull-apart'],
+  hpull: ['lib-band-pull-apart', 'lib-band-face-pull', 'lib-scapular-pull-up'],
+  vpush: ['lib-band-dislocate', 'lib-band-external-rotation', 'lib-arm-circles', 'lib-scapular-push-up'],
+  hpush: ['lib-scapular-push-up', 'lib-wrist-circles', 'lib-band-external-rotation', 'lib-arm-circles'],
+  squat: ['lib-banded-squat', 'lib-ankle-rock', 'lib-hip-circle'],
+  lunge: ['lib-leg-swing', 'lib-hip-circle', 'lib-banded-squat'],
+  hinge: ['lib-banded-glute-bridge', 'lib-cat-cow', 'lib-leg-swing'],
+}
+const WARMUP_SIZE = 5
+const WARMUP_REST = 30
 
 const SECONDS_PER_REP = 3
 const CIRCUIT_SIZE = 3 // endurance work is split into short circuits (tri-sets) so rest comes every few minutes
@@ -125,6 +131,8 @@ const NOT_FOR_CIRCUITS = new Set(['lib-negative-dip', 'lib-negative-pull-up'])
 /** Endurance reps for vertical pulls: 15 pull-ups a round is unrealistic for most people. */
 const ENDURANCE_PULL_REPS = 8
 const SETUP_SECONDS = 30 // moving to and setting up each exercise
+/** Time set aside for the warm-up before main work is sized: it is chosen afterwards, to match it. */
+const WARMUP_SECONDS = WARMUP_SIZE * (amountForWarmup('reps') * SECONDS_PER_REP + SETUP_SECONDS) + WARMUP_REST
 
 type Block = { items: { exercise: Exercise; amount: number }[]; sets: number; rest: number; note: string }
 
@@ -136,10 +144,14 @@ const chunk = <T,>(items: T[], size: number): T[][] =>
 const workSeconds = (b: Block) => b.items.reduce((s, i) => s + (i.exercise.measure === 'seconds' ? i.amount : i.amount * SECONDS_PER_REP), 0)
 const blockSeconds = (b: Block) => b.sets * (workSeconds(b) + b.rest) + SETUP_SECONDS * b.items.length
 
+function amountForWarmup(measure: Exercise['measure']): number {
+  return measure === 'seconds' ? 30 : 12
+}
+
 /** Reps or hold seconds for an exercise in a given role on a given day type. */
 export function amountFor(exercise: Exercise, type: DayType): number {
   const pattern = exercise.pattern
-  if (pattern === 'warmup') return exercise.measure === 'seconds' ? 30 : 12
+  if (pattern === 'warmup') return amountForWarmup(exercise.measure)
   if (pattern === 'skill') return exercise.measure === 'seconds' ? 10 : 3
   if (pattern === 'core') return exercise.measure === 'seconds' ? (type === 'endurance' ? 40 : 30) : type === 'endurance' ? 15 : 12
   const scheme = SCHEME[type]
@@ -204,14 +216,6 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   /** Your level for a movement: from recent history, else from the level setting (skills start a step lower). */
   const levelFor = (pattern: Pattern) => fromHistory[pattern] ?? (pattern === 'skill' ? base - 1 : base)
 
-  // Warm-up: one short circuit.
-  const warmupItems: Block['items'] = []
-  for (const group of WARMUP_GROUPS) {
-    const found = group.map((id) => byId.get(id)).find((e) => !!e && isAvailable(e, settings.equipment) && !dayIds.has(e.id))
-    if (found) warmupItems.push(take(found))
-  }
-  const warmup: Block = { items: warmupItems, sets: 1, rest: 30, note: 'Warm-up' }
-
   // Skill practice while fresh, on strength days only.
   const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(levelFor('skill')), dayIds, weekIds, random) : null
   const skillBlock: Block | null = skill && { items: [take(skill)], sets: 3, rest: 120, note: 'Skill' }
@@ -226,8 +230,8 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
 
   // Main work fills the remaining time.
   const scheme = SCHEME[spec.type]
-  const fixed = [warmup, skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
-  const budget = settings.minutes * 60 - fixed.reduce((s, b) => s + blockSeconds(b), 0)
+  const fixed = [skillBlock, core].filter((b): b is Block => !!b && b.items.length > 0)
+  const budget = settings.minutes * 60 - WARMUP_SECONDS - fixed.reduce((s, b) => s + blockSeconds(b), 0)
   let sets = scheme.sets
   const mainBlocks = (items: Block['items']): Block[] =>
     scheme.format === 'circuit'
@@ -255,6 +259,11 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     }
   }
 
+  // Warm-up: one short circuit preparing what this session actually trains, in the order it trains it.
+  const worked = [...(skill ? [skill] : []), ...mainItems.map((i) => i.exercise)].map((e) => e.pattern)
+  const warmupIds = warmupFor(worked.filter((p): p is keyof typeof WARMUP_FOR => !!p && p in WARMUP_FOR), byId, settings.equipment)
+  const warmup: Block = { items: warmupIds.map((e) => take(e)), sets: 1, rest: WARMUP_REST, note: 'Warm-up' }
+
   const blocks = [warmup, ...(skillBlock ? [skillBlock] : []), ...mainBlocks(mainItems), core].filter((b) => b.items.length > 0)
   return {
     id: newId(),
@@ -263,6 +272,31 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     weekdays: [],
     dayType: spec.type,
   }
+}
+
+/**
+ * Up to WARMUP_SIZE warm-ups for the given working patterns: round by round, each pattern (once,
+ * in session order) adds its most useful available warm-up not already chosen.
+ */
+function warmupFor(patterns: (keyof typeof WARMUP_FOR)[], byId: Map<string, Exercise>, equipment: Equipment[]): Exercise[] {
+  const unique = [...new Set(patterns)]
+  const chosen: Exercise[] = []
+  const options = unique.map((p) =>
+    WARMUP_FOR[p].map((id) => {
+      const e = byId.get(id)
+      if (!e) throw new Error(`Unknown warm-up ${id}`)
+      return e
+    }).filter((e) => isAvailable(e, equipment)),
+  )
+  while (chosen.length < WARMUP_SIZE) {
+    const before = chosen.length
+    for (const list of options) {
+      const next = list.find((e) => !chosen.includes(e))
+      if (next && chosen.length < WARMUP_SIZE) chosen.push(next)
+    }
+    if (chosen.length === before) break // nothing left to add
+  }
+  return chosen
 }
 
 /** Estimated session length in minutes, using the same timing rules as the generator. */
