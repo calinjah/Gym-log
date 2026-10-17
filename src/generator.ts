@@ -386,6 +386,17 @@ export function generateProgramme(settings: GeneratorSettings, weekdays: number[
 }
 
 /**
+ * A new session for day `i` of a week. Exercises already in the week, this day's included, are
+ * avoided where possible, so the new session differs from the one it replaces.
+ */
+export function regenerateDay(settings: GeneratorSettings, week: GeneratedDay[], i: number, random: () => number): GeneratedDay {
+  const used = new Set(week.flatMap((d) => d.plan.entries.map((e) => e.exerciseId)))
+  const plan = generateDay(settings, week[i].spec, used, random)
+  plan.weekdays = week[i].plan.weekdays
+  return { spec: week[i].spec, plan }
+}
+
+/**
  * The next exercise to swap in: same pattern, within one difficulty step, available and not already
  * in the session. Repeated taps cycle through all of them (ordered by difficulty, then name).
  */

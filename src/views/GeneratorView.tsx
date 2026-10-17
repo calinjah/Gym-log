@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { alternative, amountFor, EFFORT, estimateMinutes, generateDay, generateProgramme, type GeneratedDay, type GeneratorSettings } from '../generator'
+import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, regenerateDay, type GeneratedDay, type GeneratorSettings } from '../generator'
 import { EQUIPMENT_LABELS, LEVEL_LABELS } from '../labels'
 import { allExercises, deletePlan, exerciseMap, type Update } from '../store'
 import { supersetLabels } from '../superset'
@@ -39,12 +39,10 @@ export function GeneratorView({ data, update, onClose }: Props) {
 
   const generate = () => setWeek(generateProgramme(settings, weekdays, Math.random))
 
-  const regenerateDay = (i: number) => {
+  const newSession = (i: number) => {
     if (!week) throw new Error('No programme to change')
-    const otherIds = new Set(week.filter((_, j) => j !== i).flatMap((d) => d.plan.entries.map((e) => e.exerciseId)))
-    const plan = generateDay(settings, week[i].spec, otherIds, Math.random)
-    plan.weekdays = week[i].plan.weekdays
-    setWeek(week.map((d, j) => (j === i ? { ...d, plan } : d)))
+    const day = regenerateDay(settings, week, i, Math.random)
+    setWeek(week.map((d, j) => (j === i ? day : d)))
   }
 
   const swap = (dayIndex: number, entryIndex: number) => {
@@ -149,7 +147,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
               <h3>
                 {WEEKDAYS[plan.weekdays[0]]} · {plan.name}
               </h3>
-              <button className="icon" aria-label={`New ${plan.name} session`} onClick={() => regenerateDay(i)}>
+              <button className="icon" aria-label={`New ${plan.name} session`} onClick={() => newSession(i)}>
                 ↻
               </button>
             </div>

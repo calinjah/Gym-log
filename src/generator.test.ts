@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, splitFor, STRETCH_FOR, WARMUP_FOR, type GeneratorSettings } from './generator'
+import { alternative, estimateMinutes, generateProgramme, historyLevels, isAvailable, regenerateDay, splitFor, STRETCH_FOR, WARMUP_FOR, type GeneratorSettings } from './generator'
 import { LIBRARY } from './library'
 import { blankExercise } from './store'
 import type { Equipment, Exercise, Level, Plan } from './types'
@@ -182,6 +182,18 @@ describe('programme generator rules', () => {
     expect(stretches(lowerDay)).toHaveLength(4)
     expect(stretches(lowerDay).every((id) => (legs.has(id) && !upper.has(id)) || STRETCH_FOR.core.includes(id))).toBe(true)
     expect(upperDay.entries.at(-1)!.sets.map((s) => s.reps)).toEqual([30]) // one 30 s hold each
+  })
+
+  it('a new session for one day always differs from the one it replaces', () => {
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    for (let seed = 1; seed <= 200; seed++) {
+      const week = generateProgramme(settings, [0, 2, 4], seeded(seed))
+      const ids = (d: { plan: Plan }) => d.plan.entries.map((e) => e.exerciseId).join()
+      const day = regenerateDay(settings, week, 1, seeded(seed + 1000))
+      expect(ids(day), `seed ${seed}`).not.toBe(ids(week[1]))
+      expect(day.plan.weekdays).toEqual(week[1].plan.weekdays)
+      expect(day.spec).toEqual(week[1].spec)
+    }
   })
 
   it('rejects unsupported numbers of training days', () => {
