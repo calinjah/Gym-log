@@ -90,6 +90,9 @@ export function WorkoutView({ data, update }: Props) {
   if (plan) {
     return (
       <>
+        <div className="row">
+          <button onClick={() => setEditingPlanId(null)}>← Back</button>
+        </div>
         <h2>Edit plan</h2>
         <WorkoutEditor
           data={data}

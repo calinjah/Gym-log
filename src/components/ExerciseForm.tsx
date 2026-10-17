@@ -21,6 +21,11 @@ export function ExerciseForm({ initial, categories, onSave, onCancel }: Props) {
         onSave({ ...ex, name: ex.name.trim(), category: ex.category.trim(), muscles: ex.muscles.trim() })
       }}
     >
+      <div className="row">
+        <button type="button" onClick={onCancel}>
+          ← Back
+        </button>
+      </div>
       <label>
         Name
         <input autoFocus value={ex.name} onChange={(e) => setEx({ ...ex, name: e.target.value })} />
