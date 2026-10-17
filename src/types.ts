@@ -5,6 +5,9 @@ export type Pattern = 'warmup' | 'skill' | 'squat' | 'lunge' | 'hinge' | 'hpush'
 
 export type Equipment = 'bar' | 'rings' | 'dip' | 'band' | 'weights'
 
+/** Starting test: max reps (or hold seconds) per test exercise id; exercises not tested are absent. */
+export type FitnessTest = { takenAt: string; results: Record<string, number> }
+
 export type Level = 'beginner' | 'intermediate' | 'advanced'
 
 /** Emphasis of a generated session; decides its sets, reps and how it progresses. */
@@ -58,7 +61,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 14
+  version: 15
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -73,4 +76,5 @@ export type Data = {
   beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)
   progressNotes: string[] // what auto-progression changed after the last workout; shown until dismissed
   programmeStart: string | null // yyyy-mm-dd the generated programme was saved; its weeks (and deloads) count from here
+  fitnessTest: FitnessTest | null // the latest starting test
 }

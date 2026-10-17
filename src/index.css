@@ -669,3 +669,29 @@ input[type='date']::-webkit-date-and-time-value {
   flex-direction: column;
   gap: 4px;
 }
+
+/* Starting test */
+.starting-test .test-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.test-row > span:first-child {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+}
+.test-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.test-input .num {
+  width: 64px;
+}
+.test-results {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+}

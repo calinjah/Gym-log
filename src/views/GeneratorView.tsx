@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, regenerateDay, type GeneratedDay, type GeneratorSettings } from '../generator'
+import { StartingTest } from '../components/StartingTest'
 import { DELOAD_EVERY } from '../deload'
 import { dayKey } from '../format'
 import { EQUIPMENT_LABELS, LEVEL_LABELS } from '../labels'
@@ -29,6 +30,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
     minutes,
     sessions: data.sessions,
     now,
+    test: data.fitnessTest,
   }
   const existingGenerated = data.plans.filter((p) => p.dayType !== null)
   // Your own plans that would move off a weekday the programme takes.
@@ -118,9 +120,10 @@ export function GeneratorView({ data, update, onClose }: Props) {
             ))}
           </select>
         </label>
+        <StartingTest data={data} update={update} />
         <p className="muted small">
-          Difficulty comes from your last 8 weeks of workouts for each movement; your level is only used for movements you
-          haven’t logged yet.
+          Difficulty for each movement comes from your workouts in the last 8 weeks, or from your starting test if it’s
+          newer. Your level is only used for movements with neither.
         </p>
         <div className="field">
           <span>Equipment you have</span>

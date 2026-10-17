@@ -11,7 +11,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 14,
+  version: 15,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -25,6 +25,7 @@ const EMPTY: Data = {
   beepVolume: DEFAULT_BEEP_VOLUME,
   progressNotes: [],
   programmeStart: null,
+  fitnessTest: null,
 }
 
 /** Stored data as older versions may have written it; parseData upgrades it one version at a time. */
@@ -87,7 +88,8 @@ export function parseData(json: string): Data {
   }
   // v14: programme weeks are counted for deloads; an existing programme starts counting when it's next saved
   if (data.version === 13) data = { ...data, version: 14, programmeStart: null }
-  if (data.version !== 14 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 14) data = { ...data, version: 15, fitnessTest: null } // v14 had no starting test
+  if (data.version !== 15 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data

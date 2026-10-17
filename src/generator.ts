@@ -1,5 +1,6 @@
 import { DEFAULT_REST, newId } from './store'
-import type { DayType, Equipment, Exercise, ExerciseEntry, Level, Pattern, Plan, Session } from './types'
+import { testLevels } from './fitnessTest'
+import type { DayType, Equipment, Exercise, ExerciseEntry, FitnessTest, Level, Pattern, Plan, Session } from './types'
 
 export type { DayType }
 
@@ -23,6 +24,7 @@ export type GeneratorSettings = {
   minutes: number
   sessions: Session[] // finished workouts: difficulty and weights come from these
   now: number // epoch ms, for the history window
+  test: FitnessTest | null // starting test: sets levels until you log workouts after it
 }
 
 export type GeneratedDay = { spec: DaySpec; plan: Plan }
@@ -104,13 +106,14 @@ const BASE_LEVEL: Record<Level, number> = { beginner: 2, intermediate: 3, advanc
 const HISTORY_DAYS = 56
 
 /**
- * Difficulty step you can handle for ~6–12 reps, per movement, from the last 8 weeks: an exercise
+ * Difficulty step you can handle for ~6–12 reps, per movement, from the last 8 weeks (and only since
+ * the starting test, so a new test takes over until you train again): an exercise
  * done for 12+ reps (30+ s holds, or 6+ reps with added weight) counts a step above its own
  * difficulty, 6–11 reps (15–29 s) at it, fewer one below. The best result per movement wins.
  */
 export function historyLevels(settings: GeneratorSettings): Partial<Record<Pattern, number>> {
   const byId = new Map(settings.exercises.map((e) => [e.id, e]))
-  const since = settings.now - HISTORY_DAYS * 86_400_000
+  const since = Math.max(settings.now - HISTORY_DAYS * 86_400_000, settings.test ? Date.parse(settings.test.takenAt) : -Infinity)
   const levels: Partial<Record<Pattern, number>> = {}
   for (const session of settings.sessions) {
     if (Date.parse(session.startedAt) < since) continue
@@ -278,9 +281,10 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     return { exercise: e, amount: amountFor(e, spec.type) }
   }
   const fromHistory = historyLevels(settings)
+  const fromTest = testLevels(settings.test, byId)
   const base = BASE_LEVEL[settings.level]
-  /** Your level for a movement: from recent history, else from the level setting (skills start a step lower). */
-  const levelFor = (pattern: Pattern) => fromHistory[pattern] ?? (pattern === 'skill' ? base - 1 : base)
+  /** Your level for a movement: from recent history, else the starting test, else the level setting (skills a step lower). */
+  const levelFor = (pattern: Pattern) => fromHistory[pattern] ?? fromTest[pattern] ?? (pattern === 'skill' ? base - 1 : base)
 
   // Skill practice while fresh, on strength days only.
   const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(levelFor('skill')), dayIds, weekIds, random) : null

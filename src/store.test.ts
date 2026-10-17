@@ -37,7 +37,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(14)
+    expect(d.version).toBe(15)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -288,11 +288,18 @@ describe('v11 → v12', () => {
   })
 })
 
+describe('v14 → v15', () => {
+  it('adds an empty starting test', () => {
+    const { fitnessTest: _, ...v14 } = { ...data(), version: 14 }
+    expect(parseData(JSON.stringify(v14)).fitnessTest).toBeNull()
+  })
+})
+
 describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
-    const { programmeStart: _, ...v13 } = { ...data(), version: 13 }
+    const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(14)
+    expect(d.version).toBe(15)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -301,7 +308,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(14)
+    expect(d.version).toBe(15)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

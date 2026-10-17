@@ -1,4 +1,4 @@
-import { appData, entry, expect, openApp, planOf, saved, test, TODAY } from './helpers'
+import { appData, entry, expect, NOW, openApp, planOf, saved, test, TODAY } from './helpers'
 
 const myPlans = [
   planOf('pl', 'Push & Legs', [entry('lib-push-up', [{ reps: 10, done: false }])], [2]),
@@ -103,6 +103,37 @@ test.describe('weekly programme generator', () => {
     await page.getByRole('button', { name: 'Finish & save' }).click()
     await page.getByRole('button', { name: 'Yes, save them as done' }).click()
     await expect(page.locator('.today-plan')).toContainText('✓ Completed')
+  })
+})
+
+test.describe('starting test', () => {
+  test('taking the test saves your results and shows the level each one gives', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await page.getByRole('button', { name: 'Take the starting test' }).click()
+    const save = page.getByRole('button', { name: 'Save results' })
+    await expect(save).toBeDisabled() // nothing entered yet
+    await page.getByLabel('Pull-up result').fill('8')
+    await page.getByLabel('Push-up result').fill('x')
+    await expect(save).toBeDisabled() // not a number
+    await page.getByLabel('Push-up result').fill('25')
+    await page.getByLabel('Hollow Body Hold result').fill('45')
+    await save.click()
+
+    const d = await saved(page)
+    expect(d.fitnessTest.results).toEqual({ 'lib-pull-up': 8, 'lib-push-up': 25, 'lib-hollow-body-hold': 45 })
+    expect(d.fitnessTest.takenAt.slice(0, 10)).toBe(NOW.toISOString().slice(0, 10))
+    await expect(page.locator('.test-results li')).toHaveText(['Pull-up: 8 reps → level 3', 'Push-up: 25 reps → level 4', 'Hollow Body Hold: 45 s → level 3'])
+    await expect(page.getByRole('button', { name: 'Retake the starting test' })).toBeVisible()
+  })
+
+  test('only offers tests for equipment you have', async ({ page }) => {
+    await openApp(page, appData({ equipment: ['band'] }))
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await page.getByRole('button', { name: 'Take the starting test' }).click()
+    await expect(page.getByLabel('Pull-up result')).toHaveCount(0)
+    await expect(page.getByLabel('Parallel Bar Dip result')).toHaveCount(0)
+    await expect(page.getByLabel('Push-up result')).toBeVisible()
   })
 })
 

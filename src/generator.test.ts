@@ -45,7 +45,7 @@ const cases = WEEKS.flatMap((weekdays) =>
 describe('programme generator rules', () => {
   it(`holds for all ${cases.length} generated weeks`, () => {
     for (const c of cases) {
-      const settings: GeneratorSettings = { exercises: LIBRARY, equipment: c.equipment, level: c.level, minutes: c.minutes, sessions: [], now: NOW }
+      const settings: GeneratorSettings = { exercises: LIBRARY, equipment: c.equipment, level: c.level, minutes: c.minutes, sessions: [], now: NOW, test: null }
       const week = generateProgramme(settings, c.weekdays, seeded(c.seed))
       const where = JSON.stringify(c)
 
@@ -130,7 +130,7 @@ describe('programme generator rules', () => {
   it('gives every muscle group 10–20 hard sets a week, like a trainer would', () => {
     for (const weekdays of [[0, 2, 4], [0, 1, 3, 4]]) {
       for (const level of LEVELS) {
-        const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level, minutes: 60, sessions: [], now: NOW }
+        const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level, minutes: 60, sessions: [], now: NOW, test: null }
         const weekly = weeklySets(generateProgramme(settings, weekdays, seeded(5)).map((d) => d.plan))
         for (const group of ['push', 'pull', 'legs', 'hips']) {
           expect(weekly[group], `${weekdays.length} days ${level} ${group}`).toBeGreaterThanOrEqual(10)
@@ -141,7 +141,7 @@ describe('programme generator rules', () => {
   })
 
   it('when time is short, does fewer sets of everything before dropping a muscle group', () => {
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 45, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 45, sessions: [], now: NOW, test: null }
     const [strength] = generateProgramme(settings, [0, 3], seeded(2))
     const main = strength.plan.entries.filter((e) => !e.notes).map((e) => ({ e, ex: byId.get(e.exerciseId)! }))
     expect(main.every(({ e }) => e.sets.length === 3), 'cut from 4 sets to 3').toBe(true)
@@ -149,7 +149,7 @@ describe('programme generator rules', () => {
   })
 
   it('uses harder variations on strength days than on endurance days', () => {
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
     const [strength, , endurance] = generateProgramme(settings, [0, 2, 4], seeded(7))
     const avg = (p: Plan) => {
       const main = p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => !['warmup', 'skill', 'core', 'stretch'].includes(e.pattern!))
@@ -160,7 +160,7 @@ describe('programme generator rules', () => {
 
   it('includes your own exercises once they are tagged', () => {
     const goblet: Exercise = { ...blankExercise(), name: 'Goblet squat', pattern: 'squat', level: 3, equipment: ['weights'] }
-    const settings: GeneratorSettings = { exercises: [...LIBRARY, goblet], equipment: ['weights'], level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: [...LIBRARY, goblet], equipment: ['weights'], level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
     // One of several squats at its difficulty, so it appears in some weeks, not all.
     const used = Array.from({ length: 20 }, (_, i) => i + 1).some((seed) =>
       generateProgramme(settings, [0, 2, 4], seeded(seed)).some((d) => d.plan.entries.some((e) => e.exerciseId === goblet.id)),
@@ -169,7 +169,7 @@ describe('programme generator rules', () => {
   })
 
   it('warms up the joints each session loads: upper body on upper days, legs on leg days', () => {
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
     const week = generateProgramme(settings, [0, 1, 3, 4], seeded(3))
     const warmups = (p: Plan) => p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => e.pattern === 'warmup').map((e) => e.id)
     const upperPrep = new Set([...WARMUP_FOR.vpull, ...WARMUP_FOR.hpull, ...WARMUP_FOR.vpush, ...WARMUP_FOR.hpush, ...WARMUP_FOR.skill])
@@ -183,7 +183,7 @@ describe('programme generator rules', () => {
   })
 
   it('stretches the muscles each session worked: upper body on upper days, legs on leg days', () => {
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
     const week = generateProgramme(settings, [0, 1, 3, 4], seeded(3))
     const stretches = (p: Plan) => p.entries.map((e) => byId.get(e.exerciseId)!).filter((e) => e.pattern === 'stretch').map((e) => e.id)
     const upper = new Set([...STRETCH_FOR.vpull, ...STRETCH_FOR.hpull, ...STRETCH_FOR.vpush, ...STRETCH_FOR.hpush, ...STRETCH_FOR.skill])
@@ -198,7 +198,7 @@ describe('programme generator rules', () => {
   })
 
   it('a new session for one day always differs from the one it replaces', () => {
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
     for (let seed = 1; seed <= 200; seed++) {
       const week = generateProgramme(settings, [0, 2, 4], seeded(seed))
       const ids = (d: { plan: Plan }) => d.plan.entries.map((e) => e.exerciseId).join()
@@ -216,7 +216,7 @@ describe('programme generator rules', () => {
 })
 
 describe('swapping an exercise', () => {
-  const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW }
+  const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions: [], now: NOW, test: null }
   const pullUp = byId.get('lib-pull-up')!
 
   it('offers the same movement at a similar difficulty, available and not already in the session', () => {
@@ -253,7 +253,7 @@ describe('difficulty from your history', () => {
     entries: [{ exerciseId: id, sets: sets.map(([reps, weight = 0]) => ({ reps, weight, done: true })), notes: '', rest: 90, supersetWithPrevious: false }],
   })
   const levels = (sessions: ReturnType<typeof done>[]) =>
-    historyLevels({ exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions, now: NOW })
+    historyLevels({ exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions, now: NOW, test: null })
 
   it('scores each movement from your best recent set', () => {
     expect(levels([done('lib-pull-up', [[12]])]).vpull).toBe(4) // level 3, 12+ reps → a step above
@@ -275,11 +275,23 @@ describe('difficulty from your history', () => {
 
   it('picks harder pulls for a strong puller while legs follow the level setting', () => {
     const sessions = [done('lib-archer-pull-up', [[8]])] // level 5 pulling
-    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions, now: NOW }
+    const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions, now: NOW, test: null }
     const [strength] = generateProgramme(settings, [0, 2, 4], seeded(3))
     const main = strength.plan.entries.map((e) => byId.get(e.exerciseId)!)
     expect(Math.min(...main.filter((e) => e.pattern === 'vpull').map((e) => e.level))).toBeGreaterThanOrEqual(4)
     expect(main.filter((e) => e.pattern === 'squat').every((e) => e.level <= 5 && e.level >= 3)).toBe(true)
+  })
+
+  it('the starting test sets levels, until you log workouts after it', () => {
+    const strongPuller = { takenAt: daysAgo(3), results: { 'lib-pull-up': 20 } } // level 5 pulling
+    const vpullLevels = (sessions: ReturnType<typeof done>[]) => {
+      const settings: GeneratorSettings = { exercises: LIBRARY, equipment: ALL, level: 'beginner', minutes: 60, sessions, now: NOW, test: strongPuller }
+      const [strength] = generateProgramme(settings, [0, 2, 4], seeded(3))
+      return strength.plan.entries.filter((e) => !e.notes).map((e) => byId.get(e.exerciseId)!).filter((e) => e.pattern === 'vpull').map((e) => e.level)
+    }
+    expect(Math.min(...vpullLevels([]))).toBeGreaterThanOrEqual(5) // the test beats the beginner setting
+    expect(Math.min(...vpullLevels([done('lib-band-assisted-pull-up', [[8]], 10)]))).toBeGreaterThanOrEqual(5) // older history doesn't count
+    expect(Math.max(...vpullLevels([done('lib-band-assisted-pull-up', [[8]], 1)]))).toBeLessThanOrEqual(3) // newer history takes over
   })
 
   it('pre-fills the weight you last used', () => {
@@ -291,6 +303,7 @@ describe('difficulty from your history', () => {
       minutes: 60,
       sessions: [done('goblet', [[10, 16], [10, 20]])],
       now: NOW,
+      test: null,
     }
     const entries = [1, 2, 3, 4, 5, 6].flatMap((seed) => generateProgramme(settings, [0, 2, 4], seeded(seed)).flatMap((d) => d.plan.entries))
     const gobletEntry = entries.find((e) => e.exerciseId === 'goblet')!
