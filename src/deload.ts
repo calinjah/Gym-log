@@ -1,5 +1,6 @@
 import { weekStart } from './calendar'
-import type { ExerciseEntry } from './types'
+import { dayKey } from './format'
+import type { Data, ExerciseEntry } from './types'
 
 /** Every 5th programme week is a deload: same exercises and reps, about half the sets, to recover. */
 export const DELOAD_EVERY = 5
@@ -18,6 +19,16 @@ export function isDeloadWeek(start: string | null, day: string): boolean {
   if (start === null) return false
   const week = programmeWeek(start, day)
   return week >= 0 && week % DELOAD_EVERY === DELOAD_EVERY - 1
+}
+
+/**
+ * Whether `day` falls in a deload week: a week with a workout recorded as a deload, or a deload week
+ * of the current programme (past or upcoming).
+ */
+export function isDeloadDay(data: Data, day: string): boolean {
+  const week = dayKey(weekStart(localDay(day)))
+  if (data.sessions.some((s) => s.deload && dayKey(weekStart(new Date(s.startedAt))) === week)) return true
+  return data.plans.some((p) => p.dayType !== null) && isDeloadWeek(data.programmeStart, day)
 }
 
 /** Half the sets of every exercise, rounded up (so single-set warm-ups and stretches stay). */

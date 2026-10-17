@@ -96,7 +96,7 @@ describe('finishWorkout', () => {
 
   it('progresses only the exercises you fully completed, never warm-ups or stretches', () => {
     const d = data({ plans: [generated()] })
-    startSession(d, 'Strength', d.plans[0].entries, 'gen')
+    startSession(d, 'Strength', d.plans[0].entries, 'gen', false)
     for (const e of d.active!.entries) for (const s of e.sets) s.done = true
     d.active!.entries[2].sets[1].reps = 4 // one dip short
     finishWorkout(d, false)
@@ -116,7 +116,7 @@ describe('finishWorkout', () => {
   it('never progresses ramp-up sets', () => {
     const p = plan({ id: 'gen', dayType: 'strength', entries: [entry('lib-push-up', sets(1, 5), { notes: 'Ramp-up' }), entry('lib-pull-up', sets(2, 5))] })
     const d = data({ plans: [p] })
-    startSession(d, 'Strength', p.entries, 'gen')
+    startSession(d, 'Strength', p.entries, 'gen', false)
     for (const e of d.active!.entries) for (const s of e.sets) s.done = true
     finishWorkout(d, false)
     expect(d.progressNotes).toEqual(['Pull-up: 2×5 → 2×6'])
@@ -126,7 +126,7 @@ describe('finishWorkout', () => {
   it('leaves your own plans exactly as written', () => {
     const own = { ...generated(), dayType: null }
     const d = data({ plans: [own], progressNotes: ['old note'] })
-    startSession(d, 'Mine', own.entries, own.id)
+    startSession(d, 'Mine', own.entries, own.id, false)
     for (const e of d.active!.entries) for (const s of e.sets) s.done = true
     finishWorkout(d, false)
     expect(d.progressNotes).toEqual([])
@@ -135,7 +135,7 @@ describe('finishWorkout', () => {
 
   it('does nothing for a workout not started from a plan', () => {
     const d = data({ plans: [generated()] })
-    startSession(d, '', [entry('lib-pull-up', sets(2, 5))], null)
+    startSession(d, '', [entry('lib-pull-up', sets(2, 5))], null, false)
     for (const s of d.active!.entries[0].sets) s.done = true
     finishWorkout(d, false)
     expect(d.progressNotes).toEqual([])
@@ -144,7 +144,7 @@ describe('finishWorkout', () => {
 
   it('counts sets you keep as done when finishing', () => {
     const d = data({ plans: [generated()] })
-    startSession(d, 'Strength', d.plans[0].entries, 'gen') // nothing ticked
+    startSession(d, 'Strength', d.plans[0].entries, 'gen', false) // nothing ticked
     finishWorkout(d, true)
     expect(d.progressNotes).toHaveLength(2)
   })

@@ -11,7 +11,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 15,
+  version: 16,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -89,7 +89,12 @@ export function parseData(json: string): Data {
   // v14: programme weeks are counted for deloads; an existing programme starts counting when it's next saved
   if (data.version === 13) data = { ...data, version: 14, programmeStart: null }
   if (data.version === 14) data = { ...data, version: 15, fitnessTest: null } // v14 had no starting test
-  if (data.version !== 15 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
+  if (data.version === 15) {
+    // v16: workouts record whether they were a deload; none before this were
+    const mark = (s: RawWorkout) => ({ ...s, deload: false })
+    data = { ...data, version: 16, sessions: data.sessions.map(mark), active: data.active && mark(data.active) }
+  }
+  if (data.version !== 16 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
     throw new Error('Not a valid gym data file')
   }
   return data as unknown as Data
@@ -152,11 +157,11 @@ export function isExerciseUsed(data: Data, exerciseId: string): boolean {
 /** Begin a new in-progress workout, starting now, with a copy of the given exercises (all sets unticked). */
 /** Start a workout from a plan. In a programme's deload week, generated plans start with about half the sets. */
 export function startPlan(d: Data, plan: Plan, today: string) {
-  const entries = plan.dayType !== null && isDeloadWeek(d.programmeStart, today) ? deloadEntries(plan.entries) : plan.entries
-  startSession(d, plan.name, entries, plan.id)
+  const deload = plan.dayType !== null && isDeloadWeek(d.programmeStart, today)
+  startSession(d, plan.name, deload ? deloadEntries(plan.entries) : plan.entries, plan.id, deload)
 }
 
-export function startSession(d: Data, name: string, entries: ExerciseEntry[], planId: string | null) {
+export function startSession(d: Data, name: string, entries: ExerciseEntry[], planId: string | null, deload: boolean) {
   if (d.active) throw new Error('A workout is already in progress')
   d.active = {
     id: newId(),
@@ -164,6 +169,7 @@ export function startSession(d: Data, name: string, entries: ExerciseEntry[], pl
     planId,
     startedAt: new Date().toISOString(),
     finishedAt: null,
+    deload,
     entries: entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false })) })),
   }
 }

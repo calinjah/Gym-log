@@ -1,4 +1,4 @@
-import { appData, entry, expect, NOW, openApp, planOf, saved, test, TODAY } from './helpers'
+import { appData, entry, expect, NOW, openApp, planOf, saved, tab, test, TODAY } from './helpers'
 
 const myPlans = [
   planOf('pl', 'Push & Legs', [entry('lib-push-up', [{ reps: 10, done: false }])], [2]),
@@ -155,6 +155,25 @@ test.describe('deload week', () => {
     await expect(page.getByLabel(/Set \d+ done/)).toHaveCount(2)
     await expect(page.getByText(/^Deload week: about half the sets/)).toBeVisible()
     expect((await saved(page)).plans[0].entries[0].sets).toHaveLength(4) // the plan keeps all its sets
+
+    // Afterwards, History shows it was a deload, on the list and on the calendar's week.
+    await page.getByRole('button', { name: 'Finish & save' }).click()
+    await page.getByRole('button', { name: 'Yes, save them as done' }).click()
+    await tab(page, 'History')
+    await expect(page.locator('.list-item').first()).toContainText('deload')
+    await expect(page.locator('.calendar-day.deload:not(.outside)')).toHaveCount(7) // Mon 5 – Sun 11 Oct
+    await expect(page.locator('.calendar-legend')).toContainText('Deload week')
+    await page.locator('.list-item').first().click()
+    await expect(page.getByText('Deload week workout: about half the sets, to recover.')).toBeVisible()
+  })
+
+  test('History’s calendar shows the programme’s upcoming deload week', async ({ page }) => {
+    await openApp(page, appData({ plans: [programmeDay], programmeStart: '2026-10-08' })) // week 5 is Mon 2 – Sun 8 Nov
+    await tab(page, 'History')
+    await expect(page.locator('.calendar-day.deload:not(.outside)')).toHaveCount(0) // none in October itself
+    await page.getByRole('button', { name: 'Next month' }).click()
+    await expect(page.locator('.calendar-day.deload:not(.outside)')).toHaveCount(7)
+    await expect(page.locator('.calendar-legend')).toBeVisible()
   })
 
   test('other weeks start the full session', async ({ page }) => {

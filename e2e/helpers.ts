@@ -20,7 +20,7 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 15,
+    version: 16,
     unit: 'kg',
     customExercises: [],
     plans: [],
@@ -54,6 +54,7 @@ export const finished = (id: string, name: string, startedAt: string, entries: u
   planId,
   startedAt: new Date(startedAt).toISOString(),
   finishedAt: new Date(new Date(startedAt).getTime() + 3600_000).toISOString(),
+  deload: false,
   entries,
 })
 

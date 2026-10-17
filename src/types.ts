@@ -56,12 +56,13 @@ export type Session = Workout & {
   planId: string | null // the plan it was started from, if any
   startedAt: string // ISO timestamp
   finishedAt: string | null // ISO timestamp, null while in progress
+  deload: boolean // started as a deload-week workout (about half the sets)
 }
 
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 15
+  version: 16
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]

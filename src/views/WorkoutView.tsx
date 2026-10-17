@@ -29,7 +29,6 @@ export function WorkoutView({ data, update }: Props) {
       })
 
     const dayType = data.plans.find((p) => p.id === active.planId)?.dayType ?? null // effort target for programme days
-    const deload = dayType !== null && isDeloadWeek(data.programmeStart, dayKey(new Date(active.startedAt)))
     const sets = active.entries.flatMap((e) => e.sets)
     const unticked = sets.filter((s) => !s.done).length
     const finish = (keepUnticked: boolean) => {
@@ -41,7 +40,7 @@ export function WorkoutView({ data, update }: Props) {
       <>
         <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live>
           <SessionDateField session={active} edit={editActive} />
-          {dayType && <p className="muted small">{deload ? DELOAD_EFFORT : EFFORT[dayType]}</p>}
+          {dayType && <p className="muted small">{active.deload ? DELOAD_EFFORT : EFFORT[dayType]}</p>}
         </WorkoutEditor>
         {confirmingFinish ? (
           <div className="card form">
@@ -193,7 +192,7 @@ export function WorkoutView({ data, update }: Props) {
         </div>
       )}
       <p className="muted">No workout in progress.</p>
-      <button className="primary wide" onClick={() => update((d) => startSession(d, '', [], null))}>
+      <button className="primary wide" onClick={() => update((d) => startSession(d, '', [], null, false))}>
         Start empty workout
       </button>
 

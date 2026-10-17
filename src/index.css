@@ -7,6 +7,7 @@
   --accent: #0284c7;
   --accent-text: #ffffff;
   --danger: #dc2626;
+  --deload: #fef3c7;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light dark;
 }
@@ -21,6 +22,7 @@
     --accent: #38bdf8;
     --accent-text: #0f172a;
     --danger: #f87171;
+    --deload: #453a1a;
   }
 }
 
@@ -561,6 +563,23 @@ input[type='date']::-webkit-date-and-time-value {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.calendar-day.deload:not(.trained) {
+  background: var(--deload);
+}
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.legend-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--deload);
 }
 .calendar-day.planned:not(.trained) {
   border: 2px dashed var(--accent);

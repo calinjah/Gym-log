@@ -3,6 +3,7 @@ import { DayPlanner } from '../components/DayPlanner'
 import { SessionDateField } from '../components/SessionDateField'
 import { TrainingCalendar } from '../components/TrainingCalendar'
 import { WorkoutEditor } from '../components/WorkoutEditor'
+import { isDeloadDay } from '../deload'
 import { dayKey, formatDate, formatDuration, plural } from '../format'
 import { exerciseMap, newId, scheduledPlan, startSession, type Update } from '../store'
 import type { Data, Session } from '../types'
@@ -33,13 +34,14 @@ export function HistoryView({ data, update, onStarted }: Props) {
             disabled={data.active !== null}
             title={data.active ? 'Finish your current workout first' : undefined}
             onClick={() => {
-              update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' })), open.planId))
+              update((d) => startSession(d, open.name, open.entries.map((e) => ({ ...e, notes: '' })), open.planId, false))
               onStarted()
             }}
           >
             Repeat
           </button>
         </div>
+        {open.deload && <p className="muted small">Deload week workout: about half the sets, to recover.</p>}
         <p className="muted small">Changes to a past workout are saved automatically.</p>
         <WorkoutEditor data={data} update={update} workout={open} edit={editOpen} live={false}>
           <SessionDateField session={open} edit={editOpen} />
@@ -76,6 +78,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
       <TrainingCalendar
         sessions={data.sessions}
         isPlanned={(day) => scheduledPlan(data, day, today) !== null}
+        isDeload={(day) => isDeloadDay(data, day)}
         selectedDay={selectedDay}
         onSelectDay={setSelectedDay}
       />
@@ -98,7 +101,10 @@ export function HistoryView({ data, update, onStarted }: Props) {
             <li key={s.id}>
               <button className="list-item" onClick={() => setOpenId(s.id)}>
                 <span>
-                  <strong>{s.name || 'Workout'}</strong>
+                  <strong>
+                    {s.name || 'Workout'}
+                    {s.deload && <span className="tag">deload</span>}
+                  </strong>
                   <small>
                     {formatDate(s.startedAt)}
                     {formatDuration(s) && ` · ${formatDuration(s)}`} · {plural(s.entries.length, 'exercise')} · {plural(sets, 'set')}

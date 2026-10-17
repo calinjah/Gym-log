@@ -37,7 +37,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(15)
+    expect(d.version).toBe(16)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -99,6 +99,7 @@ describe('starting a plan in a deload week', () => {
     const d = data({ plans: [p], programmeStart: '2026-09-07' }) // 4 weeks before the week of 5 Oct
     startPlan(d, p, '2026-10-07')
     expect(d.active?.entries[0].sets).toHaveLength(2)
+    expect(d.active?.deload).toBe(true) // recorded, so History still knows after the programme changes
     expect(p.entries[0].sets).toHaveLength(4)
   })
 
@@ -107,6 +108,7 @@ describe('starting a plan in a deload week', () => {
     const d = data({ plans: [generated], programmeStart: '2026-09-14' })
     startPlan(d, generated, '2026-10-07')
     expect(d.active?.entries[0].sets).toHaveLength(4)
+    expect(d.active?.deload).toBe(false)
     const own = programme(null)
     const d2 = data({ plans: [own], programmeStart: '2026-09-07' })
     startPlan(d2, own, '2026-10-07')
@@ -118,7 +120,7 @@ describe('workout lifecycle', () => {
   it('starts a session from a plan with all sets unticked and a copy of the entries', () => {
     const p = plan({ entries: [entry('lib-push-up', [set(10, 0, true), set(10, 0, true)])] })
     const d = data({ plans: [p] })
-    startSession(d, p.name, p.entries, p.id)
+    startSession(d, p.name, p.entries, p.id, false)
     expect(d.active?.planId).toBe(p.id)
     expect(d.active?.entries[0].sets.every((s) => !s.done)).toBe(true)
     d.active!.entries[0].sets[0].reps = 99
@@ -127,13 +129,13 @@ describe('workout lifecycle', () => {
 
   it('refuses to start a second workout', () => {
     const d = data()
-    startSession(d, '', [], null)
-    expect(() => startSession(d, '', [], null)).toThrow()
+    startSession(d, '', [], null, false)
+    expect(() => startSession(d, '', [], null, false)).toThrow()
   })
 
   it('finishing can drop unticked sets and exercises left empty', () => {
     const d = data()
-    startSession(d, 'W', [entry('lib-push-up', [set(10), set(10)]), entry('lib-pull-up', [set(5)])], null)
+    startSession(d, 'W', [entry('lib-push-up', [set(10), set(10)]), entry('lib-pull-up', [set(5)])], null, false)
     d.active!.entries[0].sets[0].done = true
     d.restUntil = Date.now() + 60_000
     finishSession(d, false)
@@ -146,7 +148,7 @@ describe('workout lifecycle', () => {
 
   it('finishing can keep unticked sets as done', () => {
     const d = data()
-    startSession(d, 'W', [entry('lib-push-up', [set(10), set(8)])], null)
+    startSession(d, 'W', [entry('lib-push-up', [set(10), set(8)])], null, false)
     finishSession(d, true)
     expect(d.sessions[0].entries[0].sets.map((s) => s.done)).toEqual([true, true])
   })
@@ -288,6 +290,19 @@ describe('v11 → v12', () => {
   })
 })
 
+describe('v15 → v16', () => {
+  it('marks every existing workout as not a deload', () => {
+    const strip = (s: ReturnType<typeof session>) => {
+      const { deload: _, ...rest } = s
+      return rest
+    }
+    const v15 = { ...data(), version: 15, sessions: [strip(session())], active: strip(session({ finishedAt: null })) }
+    const d = parseData(JSON.stringify(v15))
+    expect(d.sessions[0].deload).toBe(false)
+    expect(d.active?.deload).toBe(false)
+  })
+})
+
 describe('v14 → v15', () => {
   it('adds an empty starting test', () => {
     const { fitnessTest: _, ...v14 } = { ...data(), version: 14 }
@@ -299,7 +314,7 @@ describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
     const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(15)
+    expect(d.version).toBe(16)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -308,7 +323,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(15)
+    expect(d.version).toBe(16)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

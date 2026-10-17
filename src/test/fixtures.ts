@@ -19,6 +19,7 @@ export const session = (overrides: Partial<Session> = {}): Session => ({
   planId: null,
   startedAt: '2026-10-07T17:00:00.000Z',
   finishedAt: '2026-10-07T18:00:00.000Z',
+  deload: false,
   entries: [entry('lib-pull-up')],
   ...overrides,
 })
@@ -33,7 +34,7 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 15,
+  version: 16,
   unit: 'kg',
   customExercises: [],
   plans: [],

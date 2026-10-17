@@ -250,6 +250,7 @@ describe('difficulty from your history', () => {
     planId: null,
     startedAt: daysAgo(days),
     finishedAt: daysAgo(days),
+    deload: false,
     entries: [{ exerciseId: id, sets: sets.map(([reps, weight = 0]) => ({ reps, weight, done: true })), notes: '', rest: 90, supersetWithPrevious: false }],
   })
   const levels = (sessions: ReturnType<typeof done>[]) =>
