@@ -82,6 +82,26 @@ test.describe('logging a workout', () => {
     await expect(page.getByLabel('Set 2 reps')).toHaveValue('7')
   })
 
+  test('shows the note you wrote last time for an exercise, but not a programme’s section labels', async ({ page }) => {
+    await openApp(
+      page,
+      appData({
+        sessions: [
+          finished('s1', 'Old', '2026-10-01T18:00:00+01:00', [entry('lib-pull-up', [{ reps: 6 }], { notes: 'Old note' })]),
+          finished('s2', 'Pull day', '2026-10-05T18:00:00+01:00', [
+            entry('lib-pull-up', [{ reps: 8, weight: 5 }], { notes: 'Grip slipped on set 2, try chalk' }),
+            entry('lib-band-pull-apart', [{ reps: 12 }], { notes: 'Warm-up' }),
+            entry('lib-push-up', [{ reps: 10 }]),
+          ]),
+        ],
+      }),
+    )
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    for (const name of ['Pull-up', 'Band Pull-apart', 'Push-up']) await addExercise(page, name)
+    await expect(page.locator('.last-note')).toHaveText(['Note: Grip slipped on set 2, try chalk']) // from the latest workout only
+    await expect(page.locator('.entry').nth(0).locator('.last-note')).toBeVisible()
+  })
+
   test('creates a custom exercise from the picker and logs it', async ({ page }) => {
     await openApp(page)
     await page.getByRole('button', { name: 'Start empty workout' }).click()

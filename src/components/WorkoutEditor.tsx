@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
+import { SECTION_NOTES } from '../generator'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
@@ -60,7 +61,10 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const exercise = exercises.get(entry.exerciseId)
         if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
         const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
-        const lastSets = last?.entries.find((e) => e.exerciseId === exercise.id)?.sets
+        const lastEntry = last?.entries.find((e) => e.exerciseId === exercise.id)
+        const lastSets = lastEntry?.sets
+        // What you noted last time (generated plans' section labels such as "Warm-up" aren't notes).
+        const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'
         const pb = live ? personalBest(data, exercise.id) : null
 
@@ -115,6 +119,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   Last ({formatDate(last.startedAt)}): {lastSets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}
                 </p>
               )}
+              {lastNote && <p className="muted small last-note">Note: {lastNote}</p>}
               <table className="sets">
                 <thead>
                   <tr>

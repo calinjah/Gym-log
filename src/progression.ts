@@ -1,4 +1,4 @@
-import { amountFor, isAvailable, RAMP_UP_NOTE } from './generator'
+import { amountFor, isAvailable, SECTION } from './generator'
 import { allExercises, finishSession } from './store'
 import type { Data, DayType, Equipment, Exercise, ExerciseEntry, SetEntry, Unit } from './types'
 
@@ -95,7 +95,7 @@ export function finishWorkout(d: Data, keepUnticked: boolean) {
   for (const entry of plan.entries) {
     const exercise = byId.get(entry.exerciseId)
     if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
-    if (exercise.pattern === 'warmup' || exercise.pattern === 'stretch' || entry.notes === RAMP_UP_NOTE) continue
+    if (exercise.pattern === 'warmup' || exercise.pattern === 'stretch' || entry.notes === SECTION.rampUp) continue
     const done = session.entries.find((e) => e.exerciseId === entry.exerciseId)?.sets ?? []
     if (!hitTarget(entry.sets, done)) continue
     const note = progressEntry(entry, exercise, plan.dayType, exercises, d.equipment, d.unit, planIds)
