@@ -1,4 +1,4 @@
-import { acceptDialogs, addExercise, appData, entry, expect, finished, openApp, saved, tab, test } from './helpers'
+import { acceptDialogs, addExercise, appData, entry, expect, finished, openApp, planOf, saved, tab, test } from './helpers'
 
 test.describe('logging a workout', () => {
   test('start, add exercises and sets, finish, and see it in history', async ({ page }) => {
@@ -204,6 +204,36 @@ test.describe('rest timer and supersets', () => {
     await page.getByLabel('Set 1 done').click()
     await page.reload()
     await expect(page.getByRole('timer')).toBeVisible()
+  })
+})
+
+test.describe('easier and harder variations', () => {
+  test('swap an exercise during a workout; ticked sets stay with the original', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Pull-up')
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    await expect(page.getByRole('button', { name: 'Harder: Explosive Pull-up' })).toBeVisible()
+    await page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Band-assisted Pull-up'])
+    await expect(page.getByRole('button', { name: /^Easier:/ })).toHaveCount(0) // nothing easier for pulls
+
+    // After a set, swapping only moves the sets still to do.
+    await page.getByLabel('Set 1 done').click()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await page.getByRole('button', { name: 'Harder: Chin-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['A1Band-assisted Pull-up', 'A2Chin-up'])
+    const entries = (await saved(page)).active.entries
+    expect(entries.map((e: { exerciseId: string; sets: { done: boolean }[] }) => [e.exerciseId, e.sets.map((s) => s.done)])).toEqual([
+      ['lib-band-assisted-pull-up', [true]],
+      ['lib-chin-up', [false]],
+    ])
+  })
+
+  test('no swap buttons when editing a plan', async ({ page }) => {
+    await openApp(page, appData({ plans: [planOf('pa', 'Pull A', [entry('lib-pull-up', [{ reps: 5, done: false }])])] }))
+    await page.locator('.plan').getByRole('button', { name: 'Edit' }).click()
+    await expect(page.locator('.swap-row')).toHaveCount(0)
   })
 })
 

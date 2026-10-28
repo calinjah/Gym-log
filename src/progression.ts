@@ -35,12 +35,23 @@ export function hitTarget(planned: SetEntry[], done: SetEntry[]): boolean {
   return done.length >= planned.length && planned.every((p, i) => done[i].reps >= p.reps && done[i].weight >= p.weight)
 }
 
-/** The next harder exercise for the same movement that you can do with your equipment. */
-export function nextHarder(exercise: Exercise, exercises: Exercise[], equipment: Equipment[], exclude: Set<string>): Exercise | null {
+/**
+ * The closest easier or harder exercise for the same movement that you can do with your equipment
+ * (ties by name), or null if there is none. Exercises without a movement have no variations.
+ */
+export function nextVariation(
+  exercise: Exercise,
+  exercises: Exercise[],
+  equipment: Equipment[],
+  exclude: Set<string>,
+  direction: 'easier' | 'harder',
+): Exercise | null {
+  if (exercise.pattern === null) return null
+  const step = direction === 'harder' ? 1 : -1
   return (
     exercises
-      .filter((e) => e.pattern === exercise.pattern && e.level > exercise.level && isAvailable(e, equipment) && !exclude.has(e.id))
-      .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))[0] ?? null
+      .filter((e) => e.pattern === exercise.pattern && (e.level - exercise.level) * step > 0 && isAvailable(e, equipment) && !exclude.has(e.id))
+      .sort((a, b) => (a.level - b.level) * step || a.name.localeCompare(b.name))[0] ?? null
   )
 }
 
@@ -70,7 +81,7 @@ export function progressEntry(
     for (const s of entry.sets) Object.assign(s, { reps: base, weight: heavier })
     return `${exercise.name}: ${sets}×${amountText(exercise, base)} at ${heavier} ${unit}`
   }
-  const harder = nextHarder(exercise, exercises, equipment, planIds)
+  const harder = nextVariation(exercise, exercises, equipment, planIds, 'harder')
   if (!harder) return null
   const harderBase = amountFor(harder, type)
   entry.exerciseId = harder.id

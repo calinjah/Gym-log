@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LIBRARY } from './library'
-import { finishWorkout, hitTarget, nextHarder, progressEntry } from './progression'
+import { finishWorkout, hitTarget, nextVariation, progressEntry } from './progression'
 import { startPlan, startSession } from './store'
 import { data, entry, plan, set } from './test/fixtures'
 import type { DayType, Equipment, ExerciseEntry } from './types'
@@ -73,11 +73,25 @@ describe('progressEntry', () => {
   })
 })
 
-describe('nextHarder', () => {
+describe('nextVariation', () => {
   it('respects your equipment', () => {
-    expect(nextHarder(ex('lib-ring-row'), LIBRARY, ['rings'], new Set())?.id).toBe('lib-feet-elevated-ring-row')
-    expect(nextHarder(ex('lib-australian-row'), LIBRARY, ['bar'], new Set())?.id).toBe('lib-front-lever-row')
-    expect(nextHarder(ex('lib-australian-row'), LIBRARY, [], new Set())).toBeNull()
+    expect(nextVariation(ex('lib-ring-row'), LIBRARY, ['rings'], new Set(), 'harder')?.id).toBe('lib-feet-elevated-ring-row')
+    expect(nextVariation(ex('lib-australian-row'), LIBRARY, ['bar'], new Set(), 'harder')?.id).toBe('lib-front-lever-row')
+    expect(nextVariation(ex('lib-australian-row'), LIBRARY, [], new Set(), 'harder')).toBeNull()
+  })
+
+  it('steps one difficulty level either way, to the closest level that exists', () => {
+    // Pull-up is difficulty 3: easier is the hardest below (2), harder the easiest above (4); ties by name.
+    expect(nextVariation(ex('lib-pull-up'), LIBRARY, ['bar'], new Set(), 'easier')?.id).toBe('lib-band-assisted-pull-up')
+    expect(nextVariation(ex('lib-pull-up'), LIBRARY, ['bar'], new Set(), 'harder')?.id).toBe('lib-explosive-pull-up')
+    // Exercises already in the workout are skipped.
+    expect(nextVariation(ex('lib-pull-up'), LIBRARY, ['bar'], new Set(['lib-band-assisted-pull-up']), 'easier')?.id).toBe('lib-negative-pull-up')
+  })
+
+  it('has nothing past the easiest or hardest, or for exercises without a movement', () => {
+    expect(nextVariation(ex('lib-incline-push-up'), LIBRARY, [], new Set(), 'easier')).toBeNull() // difficulty 1
+    expect(nextVariation(ex('lib-one-arm-push-up'), LIBRARY, [], new Set(), 'harder')).toBeNull()
+    expect(nextVariation(ex('lib-burpee'), LIBRARY, [], new Set(), 'harder')).toBeNull() // no movement pattern
   })
 })
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { deloadEntries, isDeloadWeek } from './deload'
 import { dayKey } from './format'
 import { LIBRARY } from './library'
-import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types'
+import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit, Workout } from './types'
 
 const KEY = 'gym-data'
 
@@ -172,6 +172,24 @@ export function startSession(d: Data, name: string, entries: ExerciseEntry[], pl
     deload,
     entries: entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false })) })),
   }
+}
+
+/**
+ * Swap exercise `i` of a workout for another, keeping the reps (weights reset: it's a different exercise).
+ * Sets already ticked stay recorded under the original exercise; the rest move to the new one right after it.
+ */
+export function swapExercise(w: Workout, i: number, exerciseId: string) {
+  const entry = w.entries[i]
+  const todo = entry.sets.filter((s) => !s.done).map((s) => ({ ...s, weight: 0 }))
+  if (todo.length === 0) throw new Error('Every set of this exercise is already done')
+  const done = entry.sets.filter((s) => s.done)
+  if (done.length === 0) {
+    entry.exerciseId = exerciseId
+    entry.sets = todo
+    return
+  }
+  entry.sets = done
+  w.entries.splice(i + 1, 0, { ...entry, exerciseId, sets: todo, supersetWithPrevious: true })
 }
 
 /** Save the active workout to history. `keepUnticked` false drops sets that were never ticked. */

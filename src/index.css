@@ -714,3 +714,15 @@ input[type='date']::-webkit-date-and-time-value {
   padding-left: 18px;
   color: var(--text);
 }
+
+/* Swap to an easier or harder variation during a workout */
+.swap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.swap-row button {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}

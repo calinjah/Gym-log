@@ -13,6 +13,7 @@ import {
   setDayPlan,
   startPlan,
   startSession,
+  swapExercise,
   toggleWeekday,
   weekdayOf,
 } from './store'
@@ -155,6 +156,33 @@ describe('workout lifecycle', () => {
 
   it('cannot finish without an active workout', () => {
     expect(() => finishSession(data(), true)).toThrow()
+  })
+})
+
+describe('swapping an exercise during a workout', () => {
+  it('before any set is done, replaces the exercise, keeping the reps and clearing the weights', () => {
+    const w = session({ entries: [entry('lib-pull-up', [set(5, 10, false), set(5, 10, false)])] })
+    swapExercise(w, 0, 'lib-band-assisted-pull-up')
+    expect(w.entries).toHaveLength(1)
+    expect(w.entries[0].exerciseId).toBe('lib-band-assisted-pull-up')
+    expect(w.entries[0].sets).toEqual([set(5, 0, false), set(5, 0, false)])
+  })
+
+  it('keeps ticked sets under the original exercise and moves the rest right after it', () => {
+    const w = session({
+      entries: [entry('lib-pull-up', [set(5, 0, true), set(5, 0, false), set(5, 0, false)]), entry('lib-parallel-bar-dip', [set(5, 0, false)], { supersetWithPrevious: true })],
+    })
+    swapExercise(w, 0, 'lib-band-assisted-pull-up')
+    expect(w.entries.map((e) => [e.exerciseId, e.sets.length, e.supersetWithPrevious])).toEqual([
+      ['lib-pull-up', 1, false],
+      ['lib-band-assisted-pull-up', 2, true], // stays in the same superset
+      ['lib-parallel-bar-dip', 1, true],
+    ])
+  })
+
+  it('refuses when every set is already done', () => {
+    const w = session({ entries: [entry('lib-pull-up', [set(5, 0, true)])] })
+    expect(() => swapExercise(w, 0, 'lib-chin-up')).toThrow()
   })
 })
 

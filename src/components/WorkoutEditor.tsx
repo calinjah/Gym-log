@@ -4,7 +4,8 @@ import { SECTION_NOTES } from '../generator'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
-import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, type Update } from '../store'
+import { nextVariation } from '../progression'
+import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, swapExercise, type Update } from '../store'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
@@ -23,6 +24,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
   const exercises = exerciseMap(data)
   const labels = supersetLabels(workout.entries)
+  const inWorkout = new Set(workout.entries.map((e) => e.exerciseId))
 
   // Only a live workout tracks progress; sets added anywhere else count as done.
   const newSet = (from: Omit<SetEntry, 'done'>): SetEntry => ({ reps: from.reps, weight: from.weight, done: !live })
@@ -65,6 +67,12 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const lastSets = lastEntry?.sets
         // What you noted last time (generated plans' section labels such as "Warm-up" aren't notes).
         const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
+        // During a workout, swap to the next easier or harder variation for the sets still to do.
+        const swappable = live && entry.sets.some((s) => !s.done)
+        const variation = (direction: 'easier' | 'harder') =>
+          swappable ? nextVariation(exercise, allExercises(data), data.equipment, inWorkout, direction) : null
+        const easier = variation('easier')
+        const harder = variation('harder')
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'
         const pb = live ? personalBest(data, exercise.id) : null
 
@@ -120,6 +128,12 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                 </p>
               )}
               {lastNote && <p className="muted small last-note">Note: {lastNote}</p>}
+              {(easier || harder) && (
+                <div className="swap-row">
+                  {easier && <button onClick={() => edit((s) => swapExercise(s, i, easier.id))}>Easier: {easier.name}</button>}
+                  {harder && <button onClick={() => edit((s) => swapExercise(s, i, harder.id))}>Harder: {harder.name}</button>}
+                </div>
+              )}
               <table className="sets">
                 <thead>
                   <tr>
