@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { restDoneAlert } from '../sound'
+import { timerDoneAlert } from '../sound'
 import type { Update } from '../store'
 
 type Props = { restUntil: number; beepVolume: number; update: Update }
@@ -14,7 +14,7 @@ export function RestTimer({ restUntil, beepVolume, update }: Props) {
       const left = restUntil - Date.now()
       if (left > 0) return setNow(Date.now())
       clearInterval(id)
-      if (left > -LATE_MS) restDoneAlert(beepVolume)
+      if (left > -LATE_MS) timerDoneAlert(beepVolume)
       update((d) => void (d.restUntil = null))
     }, 250)
     return () => clearInterval(id)

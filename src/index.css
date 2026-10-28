@@ -402,6 +402,41 @@ input[type='date']::-webkit-date-and-time-value {
   color: var(--accent-text);
 }
 
+/* Hold timer for timed sets: big and readable from the floor */
+.hold-timer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(53px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: var(--accent-text);
+  z-index: 6;
+}
+.hold-timer.ready {
+  background: var(--text);
+  color: var(--bg);
+}
+.hold-timer span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.hold-timer strong {
+  font-size: 2.6rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.hold-timer button {
+  padding: 10px 16px;
+  background: transparent;
+  border-color: currentColor;
+  color: inherit;
+}
+
 /* Backup reminder */
 .warn {
   color: var(--danger);

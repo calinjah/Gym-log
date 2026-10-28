@@ -1,6 +1,7 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
 import { SECTION_NOTES } from '../generator'
+import { setDone, startHold } from '../sets'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
@@ -25,6 +26,8 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
   const exercises = exerciseMap(data)
   const labels = supersetLabels(workout.entries)
   const inWorkout = new Set(workout.entries.map((e) => e.exerciseId))
+  // A hold remembers its set by position, so exercises and sets can't move or go while one runs.
+  const holding = live && data.hold !== null
 
   // Only a live workout tracks progress; sets added anywhere else count as done.
   const newSet = (from: Omit<SetEntry, 'done'>): SetEntry => ({ reps: from.reps, weight: from.weight, done: !live })
@@ -101,7 +104,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   <button
                     className="icon"
                     aria-label="Move up"
-                    disabled={i === 0}
+                    disabled={i === 0 || holding}
                     onClick={() => edit((s) => void s.entries.splice(i - 1, 0, ...s.entries.splice(i, 1)))}
                   >
                     ↑
@@ -109,7 +112,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   <button
                     className="icon"
                     aria-label="Move down"
-                    disabled={i === workout.entries.length - 1}
+                    disabled={i === workout.entries.length - 1 || holding}
                     onClick={() => edit((s) => void s.entries.splice(i + 1, 0, ...s.entries.splice(i, 1)))}
                   >
                     ↓
@@ -117,6 +120,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   <button
                     className="icon danger"
                     aria-label="Remove exercise"
+                    disabled={holding}
                     onClick={() => confirm(`Remove ${exercise.name}?`) && edit((s) => void s.entries.splice(i, 1))}
                   >
                     ✕
@@ -178,23 +182,31 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                             aria-pressed={set.done}
                             onClick={() => {
                               unlockAudio()
-                              update((d) => {
-                                if (!d.active) throw new Error('No active workout')
-                                const target = d.active.entries[i].sets[j]
-                                target.done = !target.done
-                                // In a superset or circuit, go straight to the next exercise; rest after the last one.
-                                if (endsGroup(d.active.entries, i)) d.restUntil = target.done ? Date.now() + entry.rest * 1000 : null
-                              })
+                              update((d) => setDone(d, i, j, !set.done, Date.now()))
                             }}
                           >
                             ✓
                           </button>
+                          {exercise.measure === 'seconds' && !set.done && (
+                            <button
+                              className="icon"
+                              aria-label={`Start set ${j + 1} hold`}
+                              disabled={holding}
+                              onClick={() => {
+                                unlockAudio()
+                                update((d) => startHold(d, i, j, Date.now()))
+                              }}
+                            >
+                              ▶
+                            </button>
+                          )}
                         </td>
                       )}
                       <td>
                         <button
                           className="icon danger"
                           aria-label={`Remove set ${j + 1}`}
+                          disabled={holding}
                           onClick={() => edit((s) => void s.entries[i].sets.splice(j, 1))}
                         >
                           ✕

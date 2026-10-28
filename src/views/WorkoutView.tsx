@@ -64,6 +64,7 @@ export function WorkoutView({ data, update }: Props) {
                 update((d) => {
                   d.active = null
                   d.restUntil = null
+                  d.hold = null
                 })
               }
             >

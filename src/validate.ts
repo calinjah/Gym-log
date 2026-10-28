@@ -107,13 +107,14 @@ const EXERCISE = shape({
 })
 
 const DATA = shape({
-  version: oneOf(17),
+  version: oneOf(18),
   unit: oneOf(...UNITS),
   customExercises: listOf(EXERCISE),
   plans: listOf(shape({ ...WORKOUT, weekdays: listOf(oneOf(0, 1, 2, 3, 4, 5, 6)), dayType: nullable(oneOf(...DAY_TYPES)) })),
   sessions: listOf(shape({ ...SESSION, finishedAt: timestamp })),
   active: nullable(shape({ ...SESSION, finishedAt: oneOf(null) })),
   restUntil: nullable(number),
+  hold: nullable(shape({ entry: number, set: number, startsAt: number, endsAt: number })),
   lastExportAt: nullable(timestamp),
   schedule: mapOf(nullable(text)),
   equipment: listOf(oneOf(...EQUIPMENT)),

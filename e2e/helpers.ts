@@ -20,13 +20,14 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 17,
+    version: 18,
     unit: 'kg',
     customExercises: [],
     plans: [],
     sessions: [],
     active: null,
     restUntil: null,
+    hold: null,
     lastExportAt: NOW.toISOString(), // no backup reminder unless a test wants one
     schedule: {},
     equipment: ALL_EQUIPMENT,

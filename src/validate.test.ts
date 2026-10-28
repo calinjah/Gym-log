@@ -38,6 +38,6 @@ describe('checking a data file', () => {
   })
 
   it('explains a backup from a newer version of the app', () => {
-    expect(() => parseData(json({ ...full(), version: 18 }))).toThrow('newer version of the app')
+    expect(() => parseData(json({ ...full(), version: 19 }))).toThrow('newer version of the app')
   })
 })

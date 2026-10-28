@@ -12,13 +12,14 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 17,
+  version: 18,
   unit: 'kg',
   customExercises: [],
   plans: [],
   sessions: [],
   active: null,
   restUntil: null,
+  hold: null,
   lastExportAt: null,
   schedule: {},
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
@@ -96,7 +97,8 @@ export function parseData(json: string): Data {
     data = { ...data, version: 16, sessions: data.sessions.map(mark), active: data.active && mark(data.active) }
   }
   if (data.version === 16) data = { ...mapEntries(data, (e) => ({ ...e, swappedFrom: [] })), version: 17 } // v16 had no swap trail
-  if (data.version > 17) throw new Error('This file is from a newer version of the app: update the app first')
+  if (data.version === 17) data = { ...data, version: 18, hold: null } // v17 had no hold timer
+  if (data.version > 18) throw new Error('This file is from a newer version of the app: update the app first')
   validateData(data)
   return data
 }
@@ -184,6 +186,7 @@ export function finishSession(d: Data, keepUnticked: boolean) {
   d.sessions.push({ ...d.active, entries, finishedAt: new Date().toISOString() })
   d.active = null
   d.restUntil = null
+  d.hold = null
 }
 
 export function categoriesOf(exercises: Exercise[]): string[] {

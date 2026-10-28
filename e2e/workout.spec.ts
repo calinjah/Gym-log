@@ -207,6 +207,62 @@ test.describe('rest timer and supersets', () => {
   })
 })
 
+test.describe('hold timer for timed sets', () => {
+  test('get ready, hold, beep, and the set ticks itself and starts the rest', async ({ page }) => {
+    await page.addInitScript(() => {
+      // Count the beeps the app schedules (each beep sets its volume once).
+      const w = window as unknown as { beeps: number }
+      w.beeps = 0
+      const original = AudioParam.prototype.setValueAtTime
+      AudioParam.prototype.setValueAtTime = function (value: number, time: number) {
+        if (value > 0.01) w.beeps++
+        return original.call(this, value, time)
+      }
+    })
+    const beeps = () => page.evaluate(() => (window as unknown as { beeps: number }).beeps)
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Plank')
+    await page.getByLabel('Set 1 sec').fill('20')
+    await page.getByRole('button', { name: 'Start set 1 hold' }).click()
+    const timer = page.getByRole('timer')
+    await expect(timer).toContainText('Get ready · Plank · set 1')
+    await expect(page.getByLabel('Remove exercise')).toBeDisabled() // can't move things mid-hold
+    await page.clock.runFor(5_000)
+    await expect(timer).toContainText('Hold · Plank')
+    await expect.poll(beeps).toBe(1)
+    await page.clock.runFor(20_000)
+    await expect(page.getByLabel('Set 1 done')).toHaveAttribute('aria-pressed', 'true')
+    await expect(timer).toContainText('Rest') // the rest timer took over
+    await expect.poll(beeps).toBe(4)
+    expect((await saved(page)).active.entries[0].sets[0]).toEqual({ reps: 20, weight: 0, done: true })
+    await expect(page.getByRole('button', { name: 'Start set 1 hold' })).toHaveCount(0) // done sets have no ▶
+  })
+
+  test('stopping early saves the seconds held; cancelling during get-ready saves nothing', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Plank')
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    await page.getByRole('button', { name: 'Start set 1 hold' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.getByRole('timer')).toBeHidden()
+    expect((await saved(page)).active.entries[0].sets[0].done).toBe(false)
+
+    await page.getByRole('button', { name: 'Start set 2 hold' }).click()
+    await page.clock.runFor(5_000 + 12_400)
+    await page.getByRole('button', { name: 'Stop' }).click()
+    expect((await saved(page)).active.entries[0].sets[1]).toEqual({ reps: 12, weight: 0, done: true })
+  })
+
+  test('rep-based exercises have no hold button', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Push-up')
+    await expect(page.getByRole('button', { name: /hold/ })).toHaveCount(0)
+  })
+})
+
 test.describe('easier and harder variations', () => {
   test('swap an exercise during a workout; ticked sets stay with the original', async ({ page }) => {
     await openApp(page)

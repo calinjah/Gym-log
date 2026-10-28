@@ -62,14 +62,23 @@ export type Session = Workout & {
 
 export type Unit = 'kg' | 'lb'
 
+/** A timed set being held: set `set` of exercise `entry` in the active workout. Times are epoch ms. */
+export type Hold = {
+  entry: number
+  set: number
+  startsAt: number // end of the get-ready countdown
+  endsAt: number // target reached
+}
+
 export type Data = {
-  version: 17
+  version: 18
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
   sessions: Session[] // finished sessions
   active: Session | null
   restUntil: number | null // epoch ms when the running rest timer ends
+  hold: Hold | null // the running hold timer for a timed set, if any
   lastExportAt: string | null // ISO timestamp of the last export (backup)
   // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
   schedule: Record<string, string | null>

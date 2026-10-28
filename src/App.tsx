@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { HoldTimer } from './components/HoldTimer'
 import { RestTimer } from './components/RestTimer'
-import { useData } from './store'
+import { exerciseMap, useData } from './store'
 import { ExercisesView } from './views/ExercisesView'
 import { HistoryView } from './views/HistoryView'
 import { SettingsView } from './views/SettingsView'
@@ -26,6 +27,14 @@ export default function App() {
         {tab === 'Settings' && <SettingsView data={data} update={update} />}
       </main>
       {data.restUntil !== null && <RestTimer restUntil={data.restUntil} beepVolume={data.beepVolume} update={update} />}
+      {data.hold && data.active && (
+        <HoldTimer
+          hold={data.hold}
+          exerciseName={exerciseMap(data).get(data.active.entries[data.hold.entry].exerciseId)?.name ?? ''}
+          beepVolume={data.beepVolume}
+          update={update}
+        />
+      )}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t} className={t === tab ? 'on' : ''} onClick={() => (t === tab ? scrollToTop() : setTab(t))}>

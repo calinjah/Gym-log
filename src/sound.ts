@@ -17,23 +17,23 @@ export function unlockAudio() {
 const RESUME_TIMEOUT_MS = 1000
 
 /**
- * Three short beeps at the given volume (0–1). Silent until a tap has unlocked audio in this page load.
+ * `count` short beeps at the given volume (0–1). Silent until a tap has unlocked audio in this page load.
  * iPhones pause a page's audio when you switch apps or lock the screen. Beeps scheduled on paused audio
  * would wait and sound on the next tap, so audio is restarted first, and the beep dropped if it can't be.
  */
-function beep(volume: number) {
+function beep(volume: number, count: number) {
   const audio = ctx
   if (!audio || volume <= 0) return
-  if (audio.state === 'running') return play(audio, volume)
+  if (audio.state === 'running') return play(audio, volume, count)
   const asked = Date.now()
   void audio.resume().then(() => {
-    if (Date.now() - asked <= RESUME_TIMEOUT_MS) play(audio, volume)
-    else console.warn(`Rest beep dropped: audio was paused (${audio.state}) and only restarted on a later tap`)
+    if (Date.now() - asked <= RESUME_TIMEOUT_MS) play(audio, volume, count)
+    else console.warn(`Beep dropped: audio was paused (${audio.state}) and only restarted on a later tap`)
   })
 }
 
-function play(audio: AudioContext, volume: number) {
-  for (let i = 0; i < 3; i++) {
+function play(audio: AudioContext, volume: number, count: number) {
+  for (let i = 0; i < count; i++) {
     const start = audio.currentTime + i * 0.3
     const osc = audio.createOscillator()
     const gain = audio.createGain()
@@ -46,14 +46,20 @@ function play(audio: AudioContext, volume: number) {
   }
 }
 
-/** End of rest: beeps plus a vibration where supported. */
-export function restDoneAlert(volume: number) {
+/** End of a rest or a hold: three beeps plus a vibration where supported. */
+export function timerDoneAlert(volume: number) {
   navigator.vibrate?.([200, 100, 200, 100, 200])
-  beep(volume)
+  beep(volume, 3)
+}
+
+/** Start of a hold, after the get-ready countdown: one beep. */
+export function startBeep(volume: number) {
+  navigator.vibrate?.(200)
+  beep(volume, 1)
 }
 
 /** "Test beep" button in Settings (the tap itself unlocks audio). */
 export function testBeep(volume: number) {
   unlockAudio()
-  beep(volume)
+  beep(volume, 3)
 }
