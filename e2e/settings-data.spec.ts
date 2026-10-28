@@ -51,6 +51,23 @@ test.describe('settings and your data', () => {
     expect((await saved(page)).sessions).toHaveLength(1)
   })
 
+  test('a damaged backup is refused, saying what is wrong, and the app keeps working', async ({ page }) => {
+    const dialogs = acceptDialogs(page)
+    await openApp(page, appData({ sessions: history }))
+    await tab(page, 'Settings')
+    for (const broken of [
+      { ...appData(), plans: [{ id: 'p', name: 'x', entries: [] }] },
+      { ...appData(), active: { entries: 'x' } },
+    ]) {
+      await page.locator('input[type=file]').setInputFiles({ name: 'x.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(broken)) })
+      await expect.poll(() => dialogs.length).toBeGreaterThan(0)
+      expect(dialogs.pop()).toMatch(/^Import failed: Not a valid gym data file: (plans\[0\]\.weekdays|active\.id) is missing/)
+    }
+    expect((await saved(page)).sessions).toHaveLength(1)
+    await page.reload()
+    await expect(page.locator('h1')).toHaveText('Workout')
+  })
+
   test('switching kg ↔ lb converts every stored weight, not just the label', async ({ page }) => {
     await openApp(page, appData({ sessions: history }))
     await tab(page, 'Settings')
@@ -150,5 +167,33 @@ test.describe('rest timer beep volume', () => {
     await page.locator('.list-item strong').getByText('Push-up', { exact: true }).click()
     await page.getByLabel('Set 1 done').click()
     expect(await page.evaluate(() => (window as unknown as { typeAtStart: string[] }).typeAtStart)).toEqual(['ambient'])
+  })
+})
+
+test.describe('recovery screen', () => {
+  const broken = { ...appData(), plans: [{ id: 'p', name: 'x', entries: [] }] } // saved data that no longer loads
+
+  test('if the app can’t start, it offers to download the data and to reset', async ({ page }) => {
+    const dialogs = acceptDialogs(page)
+    await openApp(page, broken)
+    await expect(page.locator('h1')).toHaveText('Something went wrong')
+    await expect(page.getByText('plans[0].weekdays is missing')).toBeVisible()
+
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download your data' }).click()])
+    expect(download.suggestedFilename()).toBe('gym-data-recovered-2026-10-09.json')
+    expect(JSON.parse(readFileSync(await download.path(), 'utf8'))).toEqual(broken) // exactly what was saved
+
+    await page.getByRole('button', { name: 'Reset the app' }).click()
+    expect(dialogs[0]).toContain('Delete all workout data')
+    await expect(page.locator('h1')).toHaveText('Workout')
+    expect(await page.evaluate(() => localStorage.getItem('gym-data'))).not.toContain('"name":"x"')
+  })
+
+  test('resetting asks first, and cancelling keeps the data', async ({ page }) => {
+    page.on('dialog', (d) => void d.dismiss())
+    await openApp(page, broken)
+    await page.getByRole('button', { name: 'Reset the app' }).click()
+    await expect(page.locator('h1')).toHaveText('Something went wrong')
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('gym-data')))!)).toEqual(broken)
   })
 })

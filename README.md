@@ -30,7 +30,8 @@ A personal workout tracker that runs in the browser (phone or desktop). No accou
 - **Training calendar**: the History tab opens with a month calendar (trained days filled in, today outlined), workouts this week and this month, and your weekly streak (weeks in a row with at least one workout). Tap a day to see just its workouts.
 - **History**: every finished workout is kept with all its sets, reps and weights. Past workouts can be edited, deleted, repeated, or saved as a plan.
 - **Per-exercise progress**: each exercise shows your best set, a progress chart (top weight, most reps/longest hold, or total reps/time per workout; tap or drag to read any workout), and every past session where you did it. While logging, you see what you did last time, and a 🏆 marks any ticked set that beats your previous best.
-- **Settings**: choose kg or lb, and export or import all your data as a JSON file (to move it to another device or browser).
+- **Settings**: choose kg or lb, and export or import all your data as a JSON file (to move it to another device or browser). Imports are checked in full (every workout, plan, exercise and set, and that the exercises and plans they refer to exist); a damaged or hand-edited file is refused with a message saying what's wrong, and your data is left untouched.
+- **Recovery screen**: if anything ever crashes the app (a bug, or saved data that no longer loads), it shows the problem with *Download your data* (exactly what's saved), *Try again* and *Reset the app* (after confirming), instead of a blank page.
 - **Backup reminder**: Settings shows when you last exported. If it has been 7 days or more (or never), the Workout tab shows a reminder with a one-tap **Back up now**.
 
 Weight is *added* weight: leave it at 0 for bodyweight, or use a negative number for assisted work (e.g. bands).

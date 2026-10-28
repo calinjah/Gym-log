@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { deloadEntries, isDeloadWeek } from './deload'
 import { dayKey } from './format'
 import { LIBRARY } from './library'
+import { validateData } from './validate'
 import type { Data, Exercise, ExerciseEntry, Plan, Session, Unit } from './types'
 
-const KEY = 'gym-data'
+export const STORAGE_KEY = 'gym-data'
 
 export const DEFAULT_REST = 90
 export const LB_PER_KG = 2.20462
@@ -95,14 +96,13 @@ export function parseData(json: string): Data {
     data = { ...data, version: 16, sessions: data.sessions.map(mark), active: data.active && mark(data.active) }
   }
   if (data.version === 16) data = { ...mapEntries(data, (e) => ({ ...e, swappedFrom: [] })), version: 17 } // v16 had no swap trail
-  if (data.version !== 17 || !Array.isArray(data.sessions) || !Array.isArray(data.plans) || !Array.isArray(data.customExercises)) {
-    throw new Error('Not a valid gym data file')
-  }
-  return data as unknown as Data
+  if (data.version > 17) throw new Error('This file is from a newer version of the app: update the app first')
+  validateData(data)
+  return data
 }
 
 function load(): Data {
-  const raw = localStorage.getItem(KEY)
+  const raw = localStorage.getItem(STORAGE_KEY)
   return raw === null ? EMPTY : parseData(raw)
 }
 
@@ -112,7 +112,7 @@ export function useData(): [Data, Update] {
   const [data, setData] = useState(load)
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(data))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }, [data])
 
   useEffect(() => {
