@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ExerciseBrowser } from '../components/ExerciseBrowser'
 import { ExerciseForm } from '../components/ExerciseForm'
 import { ProgressChart } from '../components/ProgressChart'
+import { SkillPaths } from '../components/SkillPaths'
 import { formatDate, formatSet } from '../format'
 import { bestSet, metricsFor, setsIn } from '../stats'
 import { allExercises, blankExercise, categoriesOf, isExerciseUsed, sessionsWithExercise, type Update } from '../store'
@@ -9,12 +10,25 @@ import type { Data, Exercise } from '../types'
 
 type Props = { data: Data; update: Update }
 
-type Mode = { kind: 'browse' } | { kind: 'detail'; id: string } | { kind: 'form'; exercise: Exercise }
+type Screen = 'browse' | 'paths'
+type Mode = { kind: Screen } | { kind: 'detail'; id: string; back: Screen } | { kind: 'form'; exercise: Exercise }
 
 export function ExercisesView({ data, update }: Props) {
   const [mode, setMode] = useState<Mode>({ kind: 'browse' })
   const [metricKey, setMetricKey] = useState<string | null>(null)
   const exercises = allExercises(data)
+
+  if (mode.kind === 'paths') {
+    return (
+      <>
+        <div className="row">
+          <button onClick={() => setMode({ kind: 'browse' })}>← Back</button>
+        </div>
+        <h2>Skill paths</h2>
+        <SkillPaths data={data} onOpen={(e) => setMode({ kind: 'detail', id: e.id, back: 'paths' })} />
+      </>
+    )
+  }
 
   if (mode.kind === 'form') {
     return (
@@ -28,7 +42,7 @@ export function ExercisesView({ data, update }: Props) {
             if (i === -1) d.customExercises.push(ex)
             else d.customExercises[i] = ex
           })
-          setMode({ kind: 'detail', id: ex.id })
+          setMode({ kind: 'detail', id: ex.id, back: 'browse' })
         }}
       />
     )
@@ -52,7 +66,7 @@ export function ExercisesView({ data, update }: Props) {
 
     return (
       <>
-        <button onClick={() => setMode({ kind: 'browse' })}>← Back</button>
+        <button onClick={() => setMode({ kind: mode.back })}>← Back</button>
         <div className="card">
           <h2>{exercise.name}</h2>
           <p className="muted">
@@ -138,7 +152,10 @@ export function ExercisesView({ data, update }: Props) {
       >
         + Create new exercise
       </button>
-      <ExerciseBrowser exercises={exercises} onSelect={(e) => setMode({ kind: 'detail', id: e.id })} />
+      <button className="wide" onClick={() => setMode({ kind: 'paths' })}>
+        Skill paths: see your progress towards each skill →
+      </button>
+      <ExerciseBrowser exercises={exercises} onSelect={(e) => setMode({ kind: 'detail', id: e.id, back: 'browse' })} />
     </>
   )
 }

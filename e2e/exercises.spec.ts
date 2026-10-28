@@ -71,3 +71,31 @@ test.describe('exercise library', () => {
     expect((await saved(page)).customExercises).toEqual([])
   })
 })
+
+test.describe('skill paths', () => {
+  test('show where you are on each path from your history, and open a step’s history', async ({ page }) => {
+    await openApp(page, appData({ sessions: [finished('s1', 'Pull day', '2026-10-05T18:00:00+01:00', [entry('lib-pull-up', [{ reps: 8 }, { reps: 9 }])])] }))
+    await tab(page, 'Exercises')
+    await page.getByRole('button', { name: /Skill paths/ }).click()
+    const pullUps = page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Pull-up', exact: true }) })
+    await expect(pullUps).toContainText('Step 3 of 5')
+    await expect(pullUps.locator('li.current')).toContainText('Pull-up')
+    await expect(pullUps.locator('li.current')).toContainText('best 9 reps / 12 reps')
+    await expect(pullUps.locator('li.done')).toHaveCount(2)
+    await expect(pullUps.locator('li.done').first()).toContainText('passed') // skipped on the way
+    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front lever' }) })).toContainText('Step 1 of 4')
+
+    await pullUps.getByRole('button', { name: 'Pull-up', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Pull-up', exact: true })).toBeVisible()
+    await expect(page.getByText(/Best set: 9 reps/)).toBeVisible()
+    await page.getByRole('button', { name: '← Back' }).click()
+    await expect(page.getByRole('heading', { name: 'Skill paths' })).toBeVisible() // back to the paths, not the library
+  })
+
+  test('mark steps that need equipment you don’t have', async ({ page }) => {
+    await openApp(page, appData({ equipment: [] }))
+    await tab(page, 'Exercises')
+    await page.getByRole('button', { name: /Skill paths/ }).click()
+    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front lever' }) }).locator('li').first()).toContainText('needs Pull-up bar or Rings')
+  })
+})

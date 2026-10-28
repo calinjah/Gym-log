@@ -761,3 +761,44 @@ input[type='date']::-webkit-date-and-time-value {
   padding: 6px 10px;
   font-size: 0.8rem;
 }
+
+/* Skill paths */
+.skill-path ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.skill-path li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 8px;
+  align-items: baseline;
+}
+.skill-path li small {
+  grid-column: 2;
+}
+.skill-path li.done .step-icon {
+  color: var(--accent);
+}
+.skill-path li.current {
+  font-weight: 600;
+}
+.skill-path li.current .step-icon {
+  color: var(--accent);
+}
+.skill-path li.later {
+  opacity: 0.6;
+}
+.skill-path button.link {
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
