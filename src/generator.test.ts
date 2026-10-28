@@ -251,7 +251,7 @@ describe('difficulty from your history', () => {
     startedAt: daysAgo(days),
     finishedAt: daysAgo(days),
     deload: false,
-    entries: [{ exerciseId: id, sets: sets.map(([reps, weight = 0]) => ({ reps, weight, done: true })), notes: '', rest: 90, supersetWithPrevious: false }],
+    entries: [{ exerciseId: id, sets: sets.map(([reps, weight = 0]) => ({ reps, weight, done: true })), notes: '', rest: 90, supersetWithPrevious: false, swappedFrom: [] }],
   })
   const levels = (sessions: ReturnType<typeof done>[]) =>
     historyLevels({ exercises: LIBRARY, equipment: ALL, level: 'intermediate', minutes: 60, sessions, now: NOW, test: null })

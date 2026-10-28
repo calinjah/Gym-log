@@ -4,8 +4,8 @@ import { SECTION_NOTES } from '../generator'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
-import { nextVariation } from '../progression'
-import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, swapExercise, type Update } from '../store'
+import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, type Update } from '../store'
+import { swapExercise, swapTarget, type Direction } from '../swap'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
@@ -39,6 +39,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         notes: '',
         rest: lastEntry?.rest ?? DEFAULT_REST,
         supersetWithPrevious: false,
+        swappedFrom: [],
       })
     })
     setPicker('closed')
@@ -67,10 +68,10 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const lastSets = lastEntry?.sets
         // What you noted last time (generated plans' section labels such as "Warm-up" aren't notes).
         const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
-        // During a workout, swap to the next easier or harder variation for the sets still to do.
+        // During a workout, swap to an easier or harder variation (or back) for the sets still to do.
         const swappable = live && entry.sets.some((s) => !s.done)
-        const variation = (direction: 'easier' | 'harder') =>
-          swappable ? nextVariation(exercise, allExercises(data), data.equipment, inWorkout, direction) : null
+        const variation = (direction: Direction) =>
+          swappable ? swapTarget(entry, allExercises(data), data.equipment, inWorkout, direction) : null
         const easier = variation('easier')
         const harder = variation('harder')
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'

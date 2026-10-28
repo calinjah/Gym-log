@@ -13,7 +13,6 @@ import {
   setDayPlan,
   startPlan,
   startSession,
-  swapExercise,
   toggleWeekday,
   weekdayOf,
 } from './store'
@@ -38,7 +37,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(16)
+    expect(d.version).toBe(17)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -46,6 +45,7 @@ describe('parseData migrations', () => {
       notes: 'easy',
       rest: 90,
       supersetWithPrevious: false,
+      swappedFrom: [],
     })
     expect(d.sessions[0].planId).toBeNull()
     expect(d.active?.planId).toBeNull()
@@ -128,6 +128,12 @@ describe('workout lifecycle', () => {
     expect(p.entries[0].sets[0].reps).toBe(10) // the plan is not changed by the workout
   })
 
+  it('starts every exercise with an empty swap trail', () => {
+    const d = data()
+    startSession(d, '', [entry('lib-band-assisted-pull-up', [set(5)], { swappedFrom: ['lib-pull-up'] })], null, false)
+    expect(d.active?.entries[0].swappedFrom).toEqual([])
+  })
+
   it('refuses to start a second workout', () => {
     const d = data()
     startSession(d, '', [], null, false)
@@ -156,33 +162,6 @@ describe('workout lifecycle', () => {
 
   it('cannot finish without an active workout', () => {
     expect(() => finishSession(data(), true)).toThrow()
-  })
-})
-
-describe('swapping an exercise during a workout', () => {
-  it('before any set is done, replaces the exercise, keeping the reps and clearing the weights', () => {
-    const w = session({ entries: [entry('lib-pull-up', [set(5, 10, false), set(5, 10, false)])] })
-    swapExercise(w, 0, 'lib-band-assisted-pull-up')
-    expect(w.entries).toHaveLength(1)
-    expect(w.entries[0].exerciseId).toBe('lib-band-assisted-pull-up')
-    expect(w.entries[0].sets).toEqual([set(5, 0, false), set(5, 0, false)])
-  })
-
-  it('keeps ticked sets under the original exercise and moves the rest right after it', () => {
-    const w = session({
-      entries: [entry('lib-pull-up', [set(5, 0, true), set(5, 0, false), set(5, 0, false)]), entry('lib-parallel-bar-dip', [set(5, 0, false)], { supersetWithPrevious: true })],
-    })
-    swapExercise(w, 0, 'lib-band-assisted-pull-up')
-    expect(w.entries.map((e) => [e.exerciseId, e.sets.length, e.supersetWithPrevious])).toEqual([
-      ['lib-pull-up', 1, false],
-      ['lib-band-assisted-pull-up', 2, true], // stays in the same superset
-      ['lib-parallel-bar-dip', 1, true],
-    ])
-  })
-
-  it('refuses when every set is already done', () => {
-    const w = session({ entries: [entry('lib-pull-up', [set(5, 0, true)])] })
-    expect(() => swapExercise(w, 0, 'lib-chin-up')).toThrow()
   })
 })
 
@@ -318,6 +297,19 @@ describe('v11 → v12', () => {
   })
 })
 
+describe('v16 → v17', () => {
+  it('gives every exercise an empty swap trail', () => {
+    const strip = (e: ReturnType<typeof entry>) => {
+      const { swappedFrom: _, ...rest } = e
+      return rest
+    }
+    const v16 = { ...data(), version: 16, plans: [{ ...plan(), entries: [strip(entry('lib-pull-up'))] }], sessions: [{ ...session(), entries: [strip(entry('lib-pull-up'))] }] }
+    const d = parseData(JSON.stringify(v16))
+    expect(d.plans[0].entries[0].swappedFrom).toEqual([])
+    expect(d.sessions[0].entries[0].swappedFrom).toEqual([])
+  })
+})
+
 describe('v15 → v16', () => {
   it('marks every existing workout as not a deload', () => {
     const strip = (s: ReturnType<typeof session>) => {
@@ -342,7 +334,7 @@ describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
     const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(16)
+    expect(d.version).toBe(17)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -351,7 +343,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(16)
+    expect(d.version).toBe(17)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

@@ -217,17 +217,25 @@ test.describe('easier and harder variations', () => {
     await page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' }).click()
     await expect(page.locator('.entry h3')).toHaveText(['Band-assisted Pull-up'])
     await expect(page.getByRole('button', { name: /^Easier:/ })).toHaveCount(0) // nothing easier for pulls
+    // Harder now goes back to the exercise you started with.
+    await page.getByRole('button', { name: 'Harder: Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
+    await expect(page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Harder: Explosive Pull-up' })).toBeVisible()
 
     // After a set, swapping only moves the sets still to do.
     await page.getByLabel('Set 1 done').click()
     await page.getByRole('button', { name: 'Skip' }).click()
-    await page.getByRole('button', { name: 'Harder: Chin-up' }).click()
-    await expect(page.locator('.entry h3')).toHaveText(['A1Band-assisted Pull-up', 'A2Chin-up'])
+    await page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['A1Pull-up', 'A2Band-assisted Pull-up'])
     const entries = (await saved(page)).active.entries
     expect(entries.map((e: { exerciseId: string; sets: { done: boolean }[] }) => [e.exerciseId, e.sets.map((s) => s.done)])).toEqual([
-      ['lib-band-assisted-pull-up', [true]],
-      ['lib-chin-up', [false]],
+      ['lib-pull-up', [true]],
+      ['lib-band-assisted-pull-up', [false]],
     ])
+    // Changing your mind rejoins the original exercise.
+    await page.getByRole('button', { name: 'Harder: Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
   })
 
   test('no swap buttons when editing a plan', async ({ page }) => {

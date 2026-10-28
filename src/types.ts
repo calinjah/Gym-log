@@ -37,6 +37,7 @@ export type ExerciseEntry = {
   notes: string
   rest: number // rest timer after each set, in seconds
   supersetWithPrevious: boolean // grouped with the exercise above; rest starts after the group's last exercise
+  swappedFrom: string[] // during a workout, exercises this was swapped from (latest last): Easier/Harder go back along it
 }
 
 /** What the workout editor edits: shared by sessions and plans. */
@@ -62,7 +63,7 @@ export type Session = Workout & {
 export type Unit = 'kg' | 'lb'
 
 export type Data = {
-  version: 16
+  version: 17
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]

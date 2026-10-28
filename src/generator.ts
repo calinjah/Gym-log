@@ -268,6 +268,7 @@ function toEntries(blocks: Block[], sessions: Session[]): ExerciseEntry[] {
       notes: b.note,
       rest: b.rest,
       supersetWithPrevious: i > 0,
+      swappedFrom: [],
     })),
   )
 }

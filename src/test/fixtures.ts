@@ -10,6 +10,7 @@ export const entry = (exerciseId: string, sets: SetEntry[] = [set(8)], overrides
   notes: '',
   rest: 90,
   supersetWithPrevious: false,
+  swappedFrom: [],
   ...overrides,
 })
 
@@ -34,7 +35,7 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 16,
+  version: 17,
   unit: 'kg',
   customExercises: [],
   plans: [],
