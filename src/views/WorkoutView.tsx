@@ -128,7 +128,7 @@ export function WorkoutView({ data, update }: Props) {
             className="danger"
             onClick={() => {
               if (!confirm('Delete this plan?')) return
-              update((d) => deletePlan(d, plan.id))
+              update((d) => deletePlan(d, plan.id, today))
               setEditingPlanId(null)
             }}
           >

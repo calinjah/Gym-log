@@ -35,7 +35,7 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 20,
+  version: 21,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -46,6 +46,7 @@ export const data = (overrides: Partial<Data> = {}): Data => ({
   lastExportAt: null,
   schedule: {},
   pinnedThrough: null,
+  pastPlanNames: {},
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   preferRings: false,
   level: 'intermediate',

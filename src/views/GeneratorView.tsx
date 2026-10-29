@@ -69,8 +69,9 @@ export function GeneratorView({ data, update, onClose }: Props) {
   const save = () => {
     if (!week) throw new Error('No programme to save')
     update((d) => {
-      for (const p of d.plans.filter((p) => p.dayType !== null)) deletePlan(d, p.id)
-      d.programmeStart = dayKey(new Date(now)) // week 1 starts now; every 5th week is a deload
+      const today = dayKey(new Date(now))
+      for (const p of d.plans.filter((p) => p.dayType !== null)) deletePlan(d, p.id, today)
+      d.programmeStart = today // week 1 starts now; every 5th week is a deload
       for (const { plan } of week) {
         if (onCalendar) {
           for (const p of d.plans) p.weekdays = p.weekdays.filter((w) => !plan.weekdays.includes(w))

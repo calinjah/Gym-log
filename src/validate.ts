@@ -27,6 +27,7 @@ export function validateData(value: unknown): asserts value is Data {
   const planIds = new Set(data.plans.map((p) => p.id))
   for (const [day, planId] of Object.entries(data.schedule)) {
     if (planId !== null && !planIds.has(planId)) fail(`schedule.${day}`, `points at a missing plan "${planId}"`)
+    if (day in data.pastPlanNames) fail(`pastPlanNames.${day}`, 'is also in the schedule')
   }
   for (const id of Object.keys(data.fitnessTest?.results ?? {})) {
     if (!exerciseIds.has(id)) fail('fitnessTest.results', `uses an unknown exercise "${id}"`)
@@ -107,7 +108,7 @@ const EXERCISE = shape({
 })
 
 const DATA = shape({
-  version: oneOf(20),
+  version: oneOf(21),
   unit: oneOf(...UNITS),
   customExercises: listOf(EXERCISE),
   plans: listOf(shape({ ...WORKOUT, weekdays: listOf(oneOf(0, 1, 2, 3, 4, 5, 6)), dayType: nullable(oneOf(...DAY_TYPES)) })),
@@ -118,6 +119,7 @@ const DATA = shape({
   lastExportAt: nullable(timestamp),
   schedule: mapOf(nullable(text)),
   pinnedThrough: nullable(text),
+  pastPlanNames: mapOf(text),
   equipment: listOf(oneOf(...EQUIPMENT)),
   preferRings: boolean,
   level: oneOf(...LEVELS),

@@ -111,6 +111,27 @@ test.describe('calendar and weekly repeats', () => {
     await expect(page.locator('.calendar-day.missed')).toHaveCount(1) // not next Thursday, nor days before the pin
   })
 
+  test('a new programme keeps the old one’s name on past days', async ({ page }) => {
+    // Yesterday (Thursday 8th) the old generated plan was due and missed.
+    await openApp(page, appData({ plans: [planOf('old', 'Old Strength', pushUps, [3], 'strength')], pinnedThrough: '2026-10-07' }))
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await page.getByRole('button', { name: 'Generate', exact: true }).click()
+    await page.getByRole('button', { name: 'Save programme' }).click()
+    await tab(page, 'History')
+    const yesterday = page.locator('.calendar-day:not(.outside)', { hasText: /^8$/ })
+    await expect(yesterday).toHaveClass(/missed/)
+    await yesterday.click()
+    await expect(page.locator('.day-planner select option:checked')).toHaveText('Old Strength (deleted plan)')
+    expect((await saved(page)).pastPlanNames).toEqual({ '2026-10-08': 'Old Strength' })
+  })
+
+  test('a past day shows its deleted plan’s name even with no plans left', async ({ page }) => {
+    await openApp(page, appData({ pastPlanNames: { '2026-10-08': 'Push A' } }))
+    await tab(page, 'History')
+    await page.locator('.calendar-day:not(.outside)', { hasText: /^8$/ }).click()
+    await expect(page.locator('.day-planner select option:checked')).toHaveText('Push A (deleted plan)')
+  })
+
   test('starting today’s plan from the calendar', async ({ page }) => {
     await openApp(page, appData({ plans: [planOf('pa', 'Push A', pushUps, [4])] }))
     await tab(page, 'History')

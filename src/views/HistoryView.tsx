@@ -77,7 +77,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
     <>
       <TrainingCalendar
         sessions={data.sessions}
-        isPlanned={(day) => scheduledPlan(data, day, today) !== null}
+        isPlanned={(day) => scheduledPlan(data, day, today) !== null || day in data.pastPlanNames}
         isDeload={(day) => isDeloadDay(data, day)}
         selectedDay={selectedDay}
         onSelectDay={setSelectedDay}

@@ -20,7 +20,7 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 20,
+    version: 21,
     unit: 'kg',
     customExercises: [],
     plans: [],
@@ -31,6 +31,7 @@ export function appData(overrides: Record<string, unknown> = {}) {
     lastExportAt: NOW.toISOString(), // no backup reminder unless a test wants one
     schedule: {},
     pinnedThrough: '2026-10-08', // yesterday: the past is already pinned unless a test says otherwise
+    pastPlanNames: {},
     equipment: ALL_EQUIPMENT,
     preferRings: false,
     level: 'intermediate',

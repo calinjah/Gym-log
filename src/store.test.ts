@@ -38,7 +38,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(20)
+    expect(d.version).toBe(21)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -230,12 +230,28 @@ describe('calendar scheduling', () => {
     expect(repeatingPlan(d, '2026-10-14')).toBeNull()
   })
 
-  it('deleting a plan clears its scheduled days but keeps skipped days', () => {
-    const a = plan()
-    const d = data({ plans: [a], schedule: { '2026-10-10': a.id, '2026-10-12': null } })
-    deletePlan(d, a.id)
+  it('deleting a plan clears its upcoming days, keeps its name on past days, and keeps skipped days', () => {
+    const a = plan({ name: 'Push A' })
+    const d = data({ plans: [a], schedule: { '2026-10-08': a.id, [today]: a.id, '2026-10-10': a.id, '2026-10-12': null } })
+    deletePlan(d, a.id, today)
     expect(d.plans).toEqual([])
     expect(d.schedule).toEqual({ '2026-10-12': null })
+    expect(d.pastPlanNames).toEqual({ '2026-10-08': 'Push A' })
+  })
+
+  it('choosing a plan for a past day whose plan was deleted replaces the kept name', () => {
+    const b = plan()
+    const d = data({ plans: [b], pastPlanNames: { '2026-10-08': 'Push A' } })
+    setDayPlan(d, '2026-10-08', b.id, today)
+    expect(d.pastPlanNames).toEqual({})
+    expect(d.schedule).toEqual({ '2026-10-08': b.id })
+  })
+
+  it('never pins over a past day whose plan was deleted', () => {
+    const a = plan({ weekdays: [3] })
+    const d = data({ plans: [a], pinnedThrough: '2026-10-07', pastPlanNames: { '2026-10-08': 'Push A' } })
+    pinPastDays(d, today)
+    expect(d.schedule).toEqual({})
   })
 
   it('pins each past day to the plan that repeated on it, so changing the repeat later leaves it alone', () => {
@@ -353,9 +369,16 @@ describe('v15 → v16', () => {
   })
 })
 
+describe('v20 → v21', () => {
+  it('has no deleted plans kept on past days', () => {
+    const { pastPlanNames: _, ...v20 } = { ...data(), version: 20 }
+    expect(parseData(JSON.stringify(v20)).pastPlanNames).toEqual({})
+  })
+})
+
 describe('v19 → v20', () => {
   it('has not pinned any past days yet', () => {
-    const { pinnedThrough: _, ...v19 } = { ...data(), version: 19 }
+    const { pinnedThrough: _, pastPlanNames: _p, ...v19 } = { ...data(), version: 19 }
     expect(parseData(JSON.stringify(v19)).pinnedThrough).toBeNull()
   })
 })
@@ -371,7 +394,7 @@ describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
     const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(20)
+    expect(d.version).toBe(21)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -380,7 +403,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(20)
+    expect(d.version).toBe(21)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

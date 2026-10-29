@@ -12,7 +12,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 20,
+  version: 21,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -23,6 +23,7 @@ const EMPTY: Data = {
   lastExportAt: null,
   schedule: {},
   pinnedThrough: null,
+  pastPlanNames: {},
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   preferRings: false,
   level: 'intermediate',
@@ -102,7 +103,8 @@ export function parseData(json: string): Data {
   if (data.version === 17) data = { ...data, version: 18, hold: null } // v17 had no hold timer
   if (data.version === 18) data = { ...data, version: 19, preferRings: false } // v18 had no ring preference
   if (data.version === 19) data = { ...data, version: 20, pinnedThrough: null } // v19 did not save past days' plans
-  if (data.version > 20) throw new Error('This file is from a newer version of the app: update the app first')
+  if (data.version === 20) data = { ...data, version: 21, pastPlanNames: {} } // v20 dropped deleted plans from past days
+  if (data.version > 21) throw new Error('This file is from a newer version of the app: update the app first')
   validateData(data)
   return data
 }
@@ -236,6 +238,7 @@ export function scheduledPlan(data: Data, day: string, today: string): Plan | nu
  * clears the one-off change. A past day always keeps its own entry (repeats don't reach back).
  */
 export function setDayPlan(d: Data, day: string, planId: string | null, today: string) {
+  delete d.pastPlanNames[day]
   if (day >= today && planId === (repeatingPlan(d, day)?.id ?? null)) delete d.schedule[day]
   else d.schedule[day] = planId
 }
@@ -255,7 +258,7 @@ export function pinPastDays(d: Data, today: string) {
   const yesterday = addDays(today, -1)
   for (let day = d.pinnedThrough === null ? addDays(today, -7) : addDays(d.pinnedThrough, 1); day <= yesterday; day = addDays(day, 1)) {
     const plan = repeatingPlan(d, day)
-    if (plan && !(day in d.schedule)) d.schedule[day] = plan.id
+    if (plan && !(day in d.schedule) && !(day in d.pastPlanNames)) d.schedule[day] = plan.id
   }
   d.pinnedThrough = yesterday
 }
@@ -271,10 +274,15 @@ export function toggleWeekday(d: Data, planId: string, weekday: number) {
   plan.weekdays = [...plan.weekdays, weekday].sort()
 }
 
-/** Delete a plan and its one-off calendar days (skipped days stay skipped). */
-export function deletePlan(d: Data, planId: string) {
+/** Delete a plan and take it off the calendar; past days keep its name (skipped days stay skipped). */
+export function deletePlan(d: Data, planId: string, today: string) {
+  const plan = findPlan(d, planId)
+  for (const [day, id] of Object.entries(d.schedule)) {
+    if (id !== planId) continue
+    if (day < today) d.pastPlanNames[day] = plan.name || 'Untitled plan'
+    delete d.schedule[day]
+  }
   d.plans = d.plans.filter((p) => p.id !== planId)
-  d.schedule = Object.fromEntries(Object.entries(d.schedule).filter(([, id]) => id !== planId))
 }
 
 /** Whether a workout started from this plan was finished on this day (yyyy-mm-dd). */

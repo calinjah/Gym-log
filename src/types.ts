@@ -71,7 +71,7 @@ export type Hold = {
 }
 
 export type Data = {
-  version: 20
+  version: 21
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -83,6 +83,7 @@ export type Data = {
   // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
   schedule: Record<string, string | null>
   pinnedThrough: string | null // last past day (yyyy-mm-dd) whose repeating plan is saved in schedule; null = never
+  pastPlanNames: Record<string, string> // past days (yyyy-mm-dd) whose planned workout was since deleted → its name
   equipment: Equipment[] // what the user has, for the generator
   preferRings: boolean // generator: use the ring version of a movement when one is as close to your level
   level: Level // training level, for the generator
