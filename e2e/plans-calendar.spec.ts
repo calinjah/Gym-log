@@ -97,6 +97,20 @@ test.describe('calendar and weekly repeats', () => {
     expect((await saved(page)).schedule).toEqual({ '2026-10-10': 'pb' })
   })
 
+  test('a missed workout keeps its plan and shows as missed, even after the repeat moves', async ({ page }) => {
+    // Push A repeats on Thursdays; yesterday (Thursday 8th) passed without a workout.
+    await openApp(page, appData({ plans: [planOf('pa', 'Push A', pushUps, [3]), planOf('pb', 'Pull B', pushUps)], pinnedThrough: '2026-10-07' }))
+    await page.locator('.plan', { hasText: 'Pull B' }).getByRole('button', { name: 'Edit' }).click()
+    await page.locator('.weekdays').getByRole('button', { name: 'Thu' }).click() // Thursdays now go to Pull B
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await tab(page, 'History')
+    const yesterday = page.locator('.calendar-day:not(.outside)', { hasText: /^8$/ })
+    await expect(yesterday).toHaveClass(/missed/)
+    await yesterday.click()
+    await expect(page.locator('.day-planner select')).toHaveValue('pa')
+    await expect(page.locator('.calendar-day.missed')).toHaveCount(1) // not next Thursday, nor days before the pin
+  })
+
   test('starting today’s plan from the calendar', async ({ page }) => {
     await openApp(page, appData({ plans: [planOf('pa', 'Push A', pushUps, [4])] }))
     await tab(page, 'History')

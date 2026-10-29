@@ -73,11 +73,13 @@ export function TrainingCalendar({ sessions, isPlanned, isDeload, selectedDay, o
         {days.map((day) => {
           const key = dayKey(day)
           const count = perDay.get(key) ?? 0
+          const missed = isPlanned(key) && key < todayKey && count === 0 // planned, and nothing logged that day
           const classes = [
             'calendar-day',
             day.getMonth() !== shown.month && 'outside',
             count > 0 && 'trained',
             isPlanned(key) && 'planned',
+            missed && 'missed',
             isDeload(key) && 'deload',
             key === todayKey && 'today',
             key === selectedDay && 'selected',
@@ -86,7 +88,7 @@ export function TrainingCalendar({ sessions, isPlanned, isDeload, selectedDay, o
             <button
               key={key}
               className={classes.filter(Boolean).join(' ')}
-              aria-label={`${day.toLocaleDateString()}: ${count} ${count === 1 ? 'workout' : 'workouts'}${isPlanned(key) ? ', planned' : ''}${isDeload(key) ? ', deload week' : ''}`}
+              aria-label={`${day.toLocaleDateString()}: ${count} ${count === 1 ? 'workout' : 'workouts'}${isPlanned(key) ? ', planned' : ''}${missed ? ', missed' : ''}${isDeload(key) ? ', deload week' : ''}`}
               aria-pressed={key === selectedDay}
               onClick={() => onSelectDay(key === selectedDay ? null : key)}
             >

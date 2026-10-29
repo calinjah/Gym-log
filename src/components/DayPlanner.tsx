@@ -29,7 +29,7 @@ export function DayPlanner({ data, update, day, onStarted }: Props) {
         {isPast ? 'Planned workout' : 'Plan a workout for this day'}
         <select
           value={plan?.id ?? ''}
-          onChange={(e) => update((d) => setDayPlan(d, day, e.target.value || null))}
+          onChange={(e) => update((d) => setDayPlan(d, day, e.target.value || null, today))}
         >
           <option value="">No plan</option>
           {data.plans.map((p) => (

@@ -30,7 +30,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 
 ## Data model
 
-- `src/types.ts` `Data` is versioned (currently **19**). To change it: bump the version, add a step in `parseData` (`src/store.ts`), update `src/validate.ts` (full check of every field and reference), `src/test/fixtures.ts`, `e2e/helpers.ts` `appData`, the version assertions in tests, and add a migration test.
+- `src/types.ts` `Data` is versioned (currently **20**). To change it: bump the version, add a step in `parseData` (`src/store.ts`), update `src/validate.ts` (full check of every field and reference), `src/test/fixtures.ts`, `e2e/helpers.ts` `appData`, the version assertions in tests, and add a migration test.
 - `validateData` runs on import **and** on every app start; `RecoveryScreen` (error boundary) offers download/try again/reset if anything crashes.
 
 ## Decisions (and why)
@@ -42,6 +42,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 - **Prefer rings:** restrict to ring exercises only when one is as close to the target level as anything available.
 - Levels: history (last 8 weeks, or since the starting test if newer) → starting test → level setting. Starting test: 6–11 reps = the exercise's own difficulty, 12–19 +1, 20+ +2, 1–5 −1, 0 −2.
 - Skill paths are named after their final step (derived, never typed). Next step at 12 reps or a 20 s hold.
+- **Past days are pinned:** repeats only compute today onwards; `pinPastDays` (on start and when the app returns from the background) saves each passed day's repeating plan into `schedule`, tracked by `pinnedThrough` (null = never: the last 7 days). A past planned day with no workout logged is `missed` (red ring). Deleting a plan (e.g. regenerating a programme) still removes it from past days, by decision.
 - Generated plans store section labels (`SECTION`: Warm-up, Skill, Ramp-up, Core, Stretch) in entry `notes`; they are not user notes.
 
 ## Known limitations (not fixed, by decision)

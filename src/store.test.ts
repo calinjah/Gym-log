@@ -6,6 +6,7 @@ import {
   finishSession,
   isExerciseUsed,
   parseData,
+  pinPastDays,
   planCompletedOn,
   repeatingPlan,
   scheduledPlan,
@@ -37,7 +38,7 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(19)
+    expect(d.version).toBe(20)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
@@ -208,11 +209,11 @@ describe('calendar scheduling', () => {
     const a = plan({ weekdays: [0] })
     const b = plan()
     const d = data({ plans: [a, b] })
-    setDayPlan(d, monday, null)
+    setDayPlan(d, monday, null, today)
     expect(scheduledPlan(d, monday, today)).toBeNull()
-    setDayPlan(d, monday, b.id)
+    setDayPlan(d, monday, b.id, today)
     expect(scheduledPlan(d, monday, today)).toBe(b)
-    setDayPlan(d, monday, a.id) // back to what the repeat gives → no one-off left
+    setDayPlan(d, monday, a.id, today) // back to what the repeat gives → no one-off left
     expect(d.schedule).toEqual({})
     expect(scheduledPlan(d, '2026-10-19', today)).toBe(a)
   })
@@ -235,6 +236,35 @@ describe('calendar scheduling', () => {
     deletePlan(d, a.id)
     expect(d.plans).toEqual([])
     expect(d.schedule).toEqual({ '2026-10-12': null })
+  })
+
+  it('pins each past day to the plan that repeated on it, so changing the repeat later leaves it alone', () => {
+    const a = plan({ weekdays: [3] }) // Thursdays
+    const b = plan()
+    const d = data({ plans: [a, b], pinnedThrough: '2026-10-07' })
+    pinPastDays(d, today)
+    expect(d.schedule).toEqual({ '2026-10-08': a.id })
+    expect(d.pinnedThrough).toBe('2026-10-08')
+    a.weekdays = []
+    b.weekdays = [3]
+    expect(scheduledPlan(d, '2026-10-08', today)).toBe(a) // yesterday: still what was planned
+    expect(scheduledPlan(d, '2026-10-15', today)).toBe(b) // next Thursday: the new repeat
+  })
+
+  it('pins the last 7 days the first time, and never overwrites a day changed on its own', () => {
+    const a = plan({ weekdays: [0, 3] }) // Mondays and Thursdays
+    const d = data({ plans: [a], schedule: { '2026-10-05': null } }) // Monday 5th skipped
+    pinPastDays(d, today)
+    expect(d.schedule).toEqual({ '2026-10-05': null, '2026-10-08': a.id }) // not Thursday 1st: 8 days ago
+    pinPastDays(d, '2026-10-13') // next opened on Tuesday
+    expect(d.schedule).toEqual({ '2026-10-05': null, '2026-10-08': a.id, '2026-10-12': a.id })
+  })
+
+  it('keeps a past day’s choice even when it matches the repeat', () => {
+    const a = plan({ weekdays: [3] })
+    const d = data({ plans: [a] })
+    setDayPlan(d, '2026-10-08', a.id, today)
+    expect(d.schedule).toEqual({ '2026-10-08': a.id })
   })
 
   it('fails loudly if the schedule points at a missing plan', () => {
@@ -323,6 +353,13 @@ describe('v15 → v16', () => {
   })
 })
 
+describe('v19 → v20', () => {
+  it('has not pinned any past days yet', () => {
+    const { pinnedThrough: _, ...v19 } = { ...data(), version: 19 }
+    expect(parseData(JSON.stringify(v19)).pinnedThrough).toBeNull()
+  })
+})
+
 describe('v14 → v15', () => {
   it('adds an empty starting test', () => {
     const { fitnessTest: _, ...v14 } = { ...data(), version: 14 }
@@ -334,7 +371,7 @@ describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
     const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(19)
+    expect(d.version).toBe(20)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -343,7 +380,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(19)
+    expect(d.version).toBe(20)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })

@@ -12,7 +12,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 19,
+  version: 20,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -22,6 +22,7 @@ const EMPTY: Data = {
   hold: null,
   lastExportAt: null,
   schedule: {},
+  pinnedThrough: null,
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
   preferRings: false,
   level: 'intermediate',
@@ -100,7 +101,8 @@ export function parseData(json: string): Data {
   if (data.version === 16) data = { ...mapEntries(data, (e) => ({ ...e, swappedFrom: [] })), version: 17 } // v16 had no swap trail
   if (data.version === 17) data = { ...data, version: 18, hold: null } // v17 had no hold timer
   if (data.version === 18) data = { ...data, version: 19, preferRings: false } // v18 had no ring preference
-  if (data.version > 19) throw new Error('This file is from a newer version of the app: update the app first')
+  if (data.version === 19) data = { ...data, version: 20, pinnedThrough: null } // v19 did not save past days' plans
+  if (data.version > 20) throw new Error('This file is from a newer version of the app: update the app first')
   validateData(data)
   return data
 }
@@ -133,6 +135,14 @@ export function useData(): [Data, Update] {
       }),
     [],
   )
+
+  useEffect(() => {
+    // On start, and when the app comes back from the background (it can stay open for days).
+    const pin = () => update((d) => pinPastDays(d, dayKey(new Date())))
+    pin()
+    document.addEventListener('visibilitychange', pin)
+    return () => document.removeEventListener('visibilitychange', pin)
+  }, [update])
 
   return [data, update]
 }
@@ -211,7 +221,7 @@ export function repeatingPlan(data: Data, day: string): Plan | null {
 
 /**
  * The plan for a day (yyyy-mm-dd): a one-off change for that day wins; otherwise a plan
- * repeating on that weekday, from today on (repeats don't mark past days).
+ * repeating on that weekday, from today on. Past days keep what pinPastDays saved for them.
  */
 export function scheduledPlan(data: Data, day: string, today: string): Plan | null {
   if (day in data.schedule) {
@@ -221,10 +231,33 @@ export function scheduledPlan(data: Data, day: string, today: string): Plan | nu
   return day >= today ? repeatingPlan(data, day) : null
 }
 
-/** Set the plan for one day; choosing what the weekly repeat already gives clears the one-off change. */
-export function setDayPlan(d: Data, day: string, planId: string | null) {
-  if (planId === (repeatingPlan(d, day)?.id ?? null)) delete d.schedule[day]
+/**
+ * Set the plan for one day; from today on, choosing what the weekly repeat already gives
+ * clears the one-off change. A past day always keeps its own entry (repeats don't reach back).
+ */
+export function setDayPlan(d: Data, day: string, planId: string | null, today: string) {
+  if (day >= today && planId === (repeatingPlan(d, day)?.id ?? null)) delete d.schedule[day]
   else d.schedule[day] = planId
+}
+
+/** The day (yyyy-mm-dd) `n` days after `day` (negative: before). */
+export function addDays(day: string, n: number): string {
+  const date = new Date(`${day}T12:00`) // midday: a DST change can't move it to another day
+  date.setDate(date.getDate() + n)
+  return dayKey(date)
+}
+
+/**
+ * Save the repeating plan of each day that has passed since the last pin, so later changes to
+ * the weekly repeats leave past days as they were planned. Never pinned yet: the last 7 days.
+ */
+export function pinPastDays(d: Data, today: string) {
+  const yesterday = addDays(today, -1)
+  for (let day = d.pinnedThrough === null ? addDays(today, -7) : addDays(d.pinnedThrough, 1); day <= yesterday; day = addDays(day, 1)) {
+    const plan = repeatingPlan(d, day)
+    if (plan && !(day in d.schedule)) d.schedule[day] = plan.id
+  }
+  d.pinnedThrough = yesterday
 }
 
 /** Repeat a plan on a weekday, taking that weekday off any other plan (one plan per day). */

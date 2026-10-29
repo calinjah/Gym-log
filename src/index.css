@@ -635,6 +635,10 @@ input[type='date']::-webkit-date-and-time-value {
   color: var(--accent);
   font-weight: 600;
 }
+.calendar-day.planned.missed {
+  border: 2px solid var(--danger);
+  color: var(--danger);
+}
 .today-plan {
   display: flex;
   align-items: center;
