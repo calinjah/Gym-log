@@ -28,6 +28,7 @@ export function ExerciseBrowser({ exercises, onSelect }: Props) {
         <input
           type="search"
           placeholder="Search exercises or muscles…"
+          aria-label="Search exercises"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

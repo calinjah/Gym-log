@@ -230,6 +230,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                 <input
                   className="notes"
                   placeholder="Notes"
+                  aria-label={`${exercise.name} notes`}
                   value={entry.notes}
                   onChange={(e) => edit((s) => void (s.entries[i].notes = e.target.value))}
                 />
