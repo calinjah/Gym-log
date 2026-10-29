@@ -107,7 +107,7 @@ const EXERCISE = shape({
 })
 
 const DATA = shape({
-  version: oneOf(18),
+  version: oneOf(19),
   unit: oneOf(...UNITS),
   customExercises: listOf(EXERCISE),
   plans: listOf(shape({ ...WORKOUT, weekdays: listOf(oneOf(0, 1, 2, 3, 4, 5, 6)), dayType: nullable(oneOf(...DAY_TYPES)) })),
@@ -118,6 +118,7 @@ const DATA = shape({
   lastExportAt: nullable(timestamp),
   schedule: mapOf(nullable(text)),
   equipment: listOf(oneOf(...EQUIPMENT)),
+  preferRings: boolean,
   level: oneOf(...LEVELS),
   beepVolume: between(0, 1),
   progressNotes: listOf(text),

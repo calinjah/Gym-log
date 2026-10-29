@@ -71,7 +71,7 @@ export type Hold = {
 }
 
 export type Data = {
-  version: 18
+  version: 19
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]
@@ -83,6 +83,7 @@ export type Data = {
   // One-off calendar changes: day (yyyy-mm-dd) → plan id, or null to skip a repeating plan that day
   schedule: Record<string, string | null>
   equipment: Equipment[] // what the user has, for the generator
+  preferRings: boolean // generator: use the ring version of a movement when one is as close to your level
   level: Level // training level, for the generator
   beepVolume: number // rest timer beep, 0 (silent) to 1 (loudest)
   progressNotes: string[] // what auto-progression changed after the last workout; shown until dismissed

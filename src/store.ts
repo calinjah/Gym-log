@@ -12,7 +12,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 18,
+  version: 19,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -23,6 +23,7 @@ const EMPTY: Data = {
   lastExportAt: null,
   schedule: {},
   equipment: ['bar', 'rings', 'dip', 'band', 'weights'],
+  preferRings: false,
   level: 'intermediate',
   beepVolume: DEFAULT_BEEP_VOLUME,
   progressNotes: [],
@@ -98,7 +99,8 @@ export function parseData(json: string): Data {
   }
   if (data.version === 16) data = { ...mapEntries(data, (e) => ({ ...e, swappedFrom: [] })), version: 17 } // v16 had no swap trail
   if (data.version === 17) data = { ...data, version: 18, hold: null } // v17 had no hold timer
-  if (data.version > 18) throw new Error('This file is from a newer version of the app: update the app first')
+  if (data.version === 18) data = { ...data, version: 19, preferRings: false } // v18 had no ring preference
+  if (data.version > 19) throw new Error('This file is from a newer version of the app: update the app first')
   validateData(data)
   return data
 }

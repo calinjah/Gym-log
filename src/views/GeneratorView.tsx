@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, regenerateDay, type GeneratedDay, type GeneratorSettings } from '../generator'
+import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, regenerateDay, type GeneratedDay, type GeneratorSettings, type Style } from '../generator'
 import { StartingTest } from '../components/StartingTest'
 import { DELOAD_EVERY } from '../deload'
 import { dayKey } from '../format'
@@ -18,6 +18,7 @@ const hasBackToBack = (days: number[]) => days.some((d) => days.includes((d + 1)
 export function GeneratorView({ data, update, onClose }: Props) {
   const [weekdays, setWeekdays] = useState<number[]>([0, 2, 4])
   const [minutes, setMinutes] = useState(60)
+  const [style, setStyle] = useState<Style>('full')
   const [week, setWeek] = useState<GeneratedDay[] | null>(null)
   const [onCalendar, setOnCalendar] = useState(true)
 
@@ -31,6 +32,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
     sessions: data.sessions,
     now,
     test: data.fitnessTest,
+    preferRings: data.preferRings,
   }
   const existingGenerated = data.plans.filter((p) => p.dayType !== null)
   // Your own plans that would move off a weekday the programme takes.
@@ -41,7 +43,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
   const toggleEquipment = (eq: Equipment) =>
     update((d) => void (d.equipment = d.equipment.includes(eq) ? d.equipment.filter((x) => x !== eq) : [...d.equipment, eq]))
 
-  const generate = () => setWeek(generateProgramme(settings, weekdays, Math.random))
+  const generate = () => setWeek(generateProgramme(settings, weekdays, Math.random, style))
 
   const newSession = (i: number) => {
     if (!week) throw new Error('No programme to change')
@@ -104,12 +106,26 @@ export function GeneratorView({ data, update, onClose }: Props) {
           {hasBackToBack(weekdays) && <small>Tip: a rest day between sessions helps recovery.</small>}
         </div>
         <label>
-          Session length
-          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
-            <option value={45}>45 minutes</option>
-            <option value={60}>60 minutes</option>
+          Programme style
+          <select value={style} onChange={(e) => setStyle(e.target.value as Style)}>
+            <option value="full">Full sessions</option>
+            <option value="minimal">Minimal: 3 exercises</option>
           </select>
         </label>
+        {style === 'minimal' ? (
+          <p className="muted small">
+            Two workouts that alternate through your days (A, B, A…): a pull and a push as a superset, then legs. A is
+            pull-ups, dips or pike push-ups and a squat or lunge; B is rows, push-ups and a hip hinge. About 25–35 minutes.
+          </p>
+        ) : (
+          <label>
+            Session length
+            <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
+              <option value={45}>45 minutes</option>
+              <option value={60}>60 minutes</option>
+            </select>
+          </label>
+        )}
         <label>
           Your level
           <select value={data.level} onChange={(e) => update((d) => void (d.level = e.target.value as Level))}>
@@ -139,6 +155,12 @@ export function GeneratorView({ data, update, onClose }: Props) {
               </button>
             ))}
           </div>
+          {data.equipment.includes('rings') && (
+            <label className="check">
+              <input type="checkbox" checked={data.preferRings} onChange={(e) => update((d) => void (d.preferRings = e.target.checked))} />
+              Prefer rings (use the ring version of a movement when one suits your level)
+            </label>
+          )}
         </div>
         <button className="primary" disabled={weekdays.length < 2 || weekdays.length > 4} onClick={generate}>
           {week ? 'Generate again' : 'Generate'}
@@ -151,7 +173,7 @@ export function GeneratorView({ data, update, onClose }: Props) {
           <div key={plan.id} className="card gen-day">
             <div className="entry-head">
               <h3>
-                {WEEKDAYS[plan.weekdays[0]]} · {plan.name}
+                {plan.weekdays.map((w) => WEEKDAYS[w]).join(', ')} · {plan.name}
               </h3>
               <button className="icon" aria-label={`New ${plan.name} session`} onClick={() => newSession(i)}>
                 ↻

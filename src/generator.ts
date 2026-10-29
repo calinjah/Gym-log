@@ -14,8 +14,14 @@ export type { DayType }
  */
 
 export type Focus = 'full' | 'upper' | 'lower'
-/** `frequency`: sessions a week that train each of this day's muscle groups (spreads the weekly volume). */
-export type DaySpec = { type: DayType; focus: Focus; frequency: number }
+/**
+ * `frequency`: sessions a week that train each of this day's muscle groups (spreads the weekly volume).
+ * `minimal`: which workout of the minimal style this is (A or B), or null for a full session.
+ */
+export type DaySpec = { type: DayType; focus: Focus; frequency: number; minimal: 'A' | 'B' | null }
+
+/** Full sessions sized to the time limit, or the minimal style: three exercises a session. */
+export type Style = 'full' | 'minimal'
 
 export type GeneratorSettings = {
   exercises: Exercise[]
@@ -25,26 +31,27 @@ export type GeneratorSettings = {
   sessions: Session[] // finished workouts: difficulty and weights come from these
   now: number // epoch ms, for the history window
   test: FitnessTest | null // starting test: sets levels until you log workouts after it
+  preferRings: boolean // pick ring exercises when one is as close to your level as any other
 }
 
 export type GeneratedDay = { spec: DaySpec; plan: Plan }
 
 /** Which sessions make up the week, by number of training days. */
 export function splitFor(days: number): DaySpec[] {
-  if (days === 2) return [{ type: 'strength', focus: 'full', frequency: 2 }, { type: 'muscle', focus: 'full', frequency: 2 }]
+  if (days === 2) return [{ type: 'strength', focus: 'full', frequency: 2, minimal: null }, { type: 'muscle', focus: 'full', frequency: 2, minimal: null }]
   if (days === 3) {
     return [
-      { type: 'strength', focus: 'full', frequency: 3 },
-      { type: 'muscle', focus: 'full', frequency: 3 },
-      { type: 'endurance', focus: 'full', frequency: 3 },
+      { type: 'strength', focus: 'full', frequency: 3, minimal: null },
+      { type: 'muscle', focus: 'full', frequency: 3, minimal: null },
+      { type: 'endurance', focus: 'full', frequency: 3, minimal: null },
     ]
   }
   if (days === 4) {
     return [
-      { type: 'strength', focus: 'upper', frequency: 2 },
-      { type: 'strength', focus: 'lower', frequency: 2 },
-      { type: 'muscle', focus: 'upper', frequency: 2 },
-      { type: 'endurance', focus: 'lower', frequency: 2 },
+      { type: 'strength', focus: 'upper', frequency: 2, minimal: null },
+      { type: 'strength', focus: 'lower', frequency: 2, minimal: null },
+      { type: 'muscle', focus: 'upper', frequency: 2, minimal: null },
+      { type: 'endurance', focus: 'lower', frequency: 2, minimal: null },
     ]
   }
   throw new Error(`A programme has 2 to 4 training days, not ${days}`)
@@ -238,9 +245,13 @@ function pick(
   avoidMeasure?: Exercise['measure'],
   circuit = false,
 ): Exercise | null {
-  const scored = settings.exercises
+  const options = settings.exercises
     .filter((e) => e.pattern === pattern && isAvailable(e, settings.equipment) && !dayIds.has(e.id))
     .filter((e) => !(circuit && SLOW_NEGATIVES.has(e.id)))
+  // Prefer rings: only ring exercises, if one is as close to the target difficulty as anything available.
+  const closest = Math.min(...options.map((e) => Math.abs(e.level - target)))
+  const rings = options.filter((e) => e.equipment.includes('rings') && Math.abs(e.level - target) === closest)
+  const scored = (settings.preferRings && rings.length > 0 ? rings : options)
     .map((e) => ({
       e,
       score: Math.abs(e.level - target) * 2 + (weekIds.has(e.id) ? 1 : 0) + (e.measure === avoidMeasure ? 3 : 0) + random() * 0.9,
@@ -277,18 +288,23 @@ const DAY_NAMES: Record<DayType, string> = { strength: 'Strength', muscle: 'Musc
 const FOCUS_NAMES: Record<Focus, string> = { full: 'Full Body', upper: 'Upper Body', lower: 'Lower Body' }
 
 /** One session for a day spec. `weekIds` are exercises already used on other days (avoided where possible). */
+/** Your level for a movement: from recent history, else the starting test, else the level setting (skills a step lower). */
+function levelsFor(settings: GeneratorSettings, byId: Map<string, Exercise>): (pattern: Pattern) => number {
+  const fromHistory = historyLevels(settings)
+  const fromTest = testLevels(settings.test, byId)
+  const base = BASE_LEVEL[settings.level]
+  return (pattern) => fromHistory[pattern] ?? fromTest[pattern] ?? (pattern === 'skill' ? base - 1 : base)
+}
+
 export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds: Set<string>, random: () => number): Plan {
+  if (spec.minimal) return generateMinimalDay(settings, spec.minimal, weekIds, random)
   const byId = new Map(settings.exercises.map((e) => [e.id, e]))
   const dayIds = new Set<string>()
   const take = (e: Exercise) => {
     dayIds.add(e.id)
     return { exercise: e, amount: amountFor(e, spec.type) }
   }
-  const fromHistory = historyLevels(settings)
-  const fromTest = testLevels(settings.test, byId)
-  const base = BASE_LEVEL[settings.level]
-  /** Your level for a movement: from recent history, else the starting test, else the level setting (skills a step lower). */
-  const levelFor = (pattern: Pattern) => fromHistory[pattern] ?? fromTest[pattern] ?? (pattern === 'skill' ? base - 1 : base)
+  const levelFor = levelsFor(settings, byId)
 
   // Skill practice while fresh, on strength days only.
   const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(levelFor('skill')), dayIds, weekIds, random) : null
@@ -393,6 +409,45 @@ function routineFor<P extends Trained>(
   return chosen
 }
 
+/**
+ * Minimal style: a pull and a push as a superset, then legs. Workout A is vertical (pull-up, dip/pike
+ * family) with a squat or lunge; B is horizontal (row, push-up family) with a hip hinge, so A and B
+ * together cover the whole body. Muscle-building sets, a short warm-up and stretches, a ramp-up set.
+ */
+const MINIMAL: Record<'A' | 'B', { pair: MainPattern[]; legs: MainPattern[] }> = {
+  A: { pair: ['vpull', 'vpush'], legs: ['lunge', 'squat'] },
+  B: { pair: ['hpull', 'hpush'], legs: ['hinge'] },
+}
+const MINIMAL_ROUTINE_SIZE = 3 // warm-up drills and stretches: scaled down to the shorter session
+
+function generateMinimalDay(settings: GeneratorSettings, workout: 'A' | 'B', weekIds: Set<string>, random: () => number): Plan {
+  const type: DayType = 'muscle'
+  const byId = new Map(settings.exercises.map((e) => [e.id, e]))
+  const dayIds = new Set<string>()
+  const take = (e: Exercise) => {
+    dayIds.add(e.id)
+    return { exercise: e, amount: amountFor(e, type) }
+  }
+  const levelFor = levelsFor(settings, byId)
+  const choose = (pattern: MainPattern) => pick(settings, pattern, clampLevel(levelFor(pattern)), dayIds, weekIds, random)
+  const { pair, legs } = MINIMAL[workout]
+  const pairItems = pair.flatMap((p) => choose(p) ?? []).map(take)
+  const leg = legs.map(choose).find((e) => e !== null)
+  const legItems = leg ? [take(leg)] : []
+  if (pairItems.length + legItems.length === 0) throw new Error('No exercises match your equipment for this session')
+
+  const worked = [...pairItems, ...legItems].map((i) => i.exercise.pattern).filter((p): p is Exclude<Trained, 'core' | 'skill'> => p !== null && p in WARMUP_FOR)
+  const scheme = SCHEME[type]
+  const blocks: Block[] = [
+    { items: routineFor(WARMUP_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: WARMUP_REST, note: SECTION.warmup },
+    { items: pairItems.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take), sets: 1, rest: RAMP_UP_REST, note: SECTION.rampUp },
+    { items: pairItems, sets: scheme.sets, rest: scheme.rest, note: '' },
+    { items: legItems, sets: scheme.sets, rest: scheme.rest, note: '' },
+    { items: routineFor(STRETCH_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: STRETCH_REST, note: SECTION.stretch },
+  ].filter((b) => b.items.length > 0)
+  return { id: newId(), name: `Minimal ${workout}`, entries: toEntries(blocks, settings.sessions), weekdays: [], dayType: type }
+}
+
 /** Estimated session length in minutes, using the same timing rules as the generator. */
 export function estimateMinutes(plan: Plan, exercises: Map<string, Exercise>): number {
   let seconds = 0
@@ -407,13 +462,31 @@ export function estimateMinutes(plan: Plan, exercises: Map<string, Exercise>): n
 }
 
 /** A full week: one session per chosen weekday, varying exercises across days where possible. */
-export function generateProgramme(settings: GeneratorSettings, weekdays: number[], random: () => number): GeneratedDay[] {
+export function generateProgramme(settings: GeneratorSettings, weekdays: number[], random: () => number, style: Style = 'full'): GeneratedDay[] {
+  if (style === 'minimal') return minimalProgramme(settings, weekdays, random)
   const specs = splitFor(weekdays.length)
   const weekIds = new Set<string>()
   return specs.map((spec, i) => {
     const plan = generateDay(settings, spec, weekIds, random)
     plan.entries.forEach((e) => weekIds.add(e.exerciseId))
     plan.weekdays = [weekdays[i]]
+    return { spec, plan }
+  })
+}
+
+/**
+ * The minimal style's week: workouts A and B alternate through your training days (A, B, A for three
+ * days), each a weekly-repeating plan on its days.
+ */
+function minimalProgramme(settings: GeneratorSettings, weekdays: number[], random: () => number): GeneratedDay[] {
+  if (weekdays.length < 2 || weekdays.length > 4) throw new Error(`A programme has 2 to 4 training days, not ${weekdays.length}`)
+  const weekIds = new Set<string>()
+  return (['A', 'B'] as const).map((workout, k) => {
+    const days = weekdays.filter((_, i) => i % 2 === k)
+    const spec: DaySpec = { type: 'muscle', focus: 'full', frequency: days.length, minimal: workout }
+    const plan = generateDay(settings, spec, weekIds, random)
+    plan.entries.forEach((e) => weekIds.add(e.exerciseId))
+    plan.weekdays = days
     return { spec, plan }
   })
 }

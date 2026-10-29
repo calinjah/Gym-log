@@ -106,6 +106,38 @@ test.describe('weekly programme generator', () => {
   })
 })
 
+test.describe('minimal style', () => {
+  test('two three-exercise workouts alternate through the week, and save as repeating plans', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await page.getByLabel('Programme style').selectOption('minimal')
+    await expect(page.getByLabel('Session length')).toHaveCount(0) // minimal sessions are short by design
+    await page.getByRole('button', { name: 'Generate', exact: true }).click()
+    await expect(page.locator('.gen-day h3')).toHaveText(['Mon, Fri · Minimal A', 'Wed · Minimal B'])
+    for (const day of await page.locator('.gen-day').all()) {
+      await expect(day.locator('.gen-item:not(.warm-up):not(.ramp-up):not(.stretch)')).toHaveCount(3)
+      const minutes = Number((await day.locator('p').first().innerText()).match(/\d+/)![0])
+      expect(minutes).toBeLessThanOrEqual(35)
+    }
+    await page.getByRole('button', { name: 'Save programme' }).click()
+    const plans = (await saved(page)).plans
+    expect(plans.map((p: { name: string; weekdays: number[]; dayType: string }) => [p.name, p.weekdays, p.dayType])).toEqual([
+      ['Minimal A', [0, 4], 'muscle'],
+      ['Minimal B', [2], 'muscle'],
+    ])
+    await expect(page.locator('.today-plan')).toContainText('Minimal A') // today is a Friday
+  })
+
+  test('prefer rings is offered with rings ticked, and remembered', async ({ page }) => {
+    await openApp(page, appData({ equipment: ['bar', 'dip'] }))
+    await page.getByRole('button', { name: /Generate a weekly programme/ }).click()
+    await expect(page.getByLabel(/Prefer rings/)).toHaveCount(0)
+    await page.getByRole('button', { name: 'Rings' }).click()
+    await page.getByLabel(/Prefer rings/).check()
+    expect((await saved(page)).preferRings).toBe(true)
+  })
+})
+
 test.describe('starting test', () => {
   test('taking the test saves your results and shows the level each one gives', async ({ page }) => {
     await openApp(page)
