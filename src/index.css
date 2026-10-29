@@ -218,6 +218,20 @@ input[type='date']::-webkit-date-and-time-value {
   flex-direction: column;
   gap: 10px;
 }
+.browser-filters {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: -8px;
+  padding: 8px 0;
+  background: var(--bg);
+}
+.modal-body .browser-filters {
+  top: -16px; /* over the window's top padding, so nothing shows above it */
+}
 .chips {
   display: flex;
   gap: 6px;

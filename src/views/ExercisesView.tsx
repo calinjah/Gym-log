@@ -141,20 +141,12 @@ export function ExercisesView({ data, update }: Props) {
 
   return (
     <>
-      <button
-        className="primary wide"
-        onClick={() =>
-          setMode({
-            kind: 'form',
-            exercise: blankExercise(),
-          })
-        }
-      >
-        + Create new exercise
-      </button>
-      <button className="wide" onClick={() => setMode({ kind: 'paths' })}>
-        Skill paths: see your progress towards each skill →
-      </button>
+      <div className="row">
+        <button className="primary" onClick={() => setMode({ kind: 'form', exercise: blankExercise() })}>
+          + New exercise
+        </button>
+        <button onClick={() => setMode({ kind: 'paths' })}>Skill paths →</button>
+      </div>
       <ExerciseBrowser exercises={exercises} onSelect={(e) => setMode({ kind: 'detail', id: e.id, back: 'browse' })} />
     </>
   )

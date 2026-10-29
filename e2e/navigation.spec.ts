@@ -39,7 +39,7 @@ test.describe('back buttons', () => {
   test('the exercise form has a Back button that leaves without saving', async ({ page }) => {
     await openApp(page)
     await tab(page, 'Exercises')
-    await page.getByRole('button', { name: '+ Create new exercise' }).click()
+    await page.getByRole('button', { name: '+ New exercise' }).click()
     await page.getByLabel('Name', { exact: true }).fill('Not saved')
     await page.getByRole('button', { name: '← Back' }).click()
     await expect(page.getByLabel('Name', { exact: true })).toHaveCount(0)

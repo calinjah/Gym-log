@@ -23,21 +23,24 @@ export function ExerciseBrowser({ exercises, onSelect }: Props) {
 
   return (
     <div className="browser">
-      <input
-        type="search"
-        placeholder="Search exercises or muscles…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <div className="chips">
-        <button className={category === null ? 'chip on' : 'chip'} onClick={() => setCategory(null)}>
-          All
-        </button>
-        {chips.map((c) => (
-          <button key={c} className={category === c ? 'chip on' : 'chip'} onClick={() => setCategory(c)}>
-            {c}
+      {/* Stays at the top while the list scrolls, so you can search again without scrolling back up. */}
+      <div className="browser-filters">
+        <input
+          type="search"
+          placeholder="Search exercises or muscles…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="chips">
+          <button className={category === null ? 'chip on' : 'chip'} onClick={() => setCategory(null)}>
+            All
           </button>
-        ))}
+          {chips.map((c) => (
+            <button key={c} className={category === c ? 'chip on' : 'chip'} onClick={() => setCategory(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
       <ul className="list">
         {shown.map((e) => (

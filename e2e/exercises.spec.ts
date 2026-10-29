@@ -99,3 +99,28 @@ test.describe('skill paths', () => {
     await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front lever' }) }).locator('li').first()).toContainText('needs Pull-up bar or Rings')
   })
 })
+
+test.describe('library layout', () => {
+  test('the buttons share one row, and search stays at the top while the list scrolls', async ({ page }) => {
+    await openApp(page)
+    await tab(page, 'Exercises')
+    const create = await page.getByRole('button', { name: '+ New exercise' }).boundingBox()
+    const paths = await page.getByRole('button', { name: 'Skill paths →' }).boundingBox()
+    expect(Math.abs(create!.y - paths!.y)).toBeLessThan(2) // side by side
+    await page.mouse.wheel(0, 2500)
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000)
+    const search = page.getByPlaceholder('Search exercises or muscles…')
+    await expect(search).toBeInViewport()
+    await search.fill('pistol')
+    await expect(page.locator('.list-item strong')).toHaveText(['Box Pistol Squat', 'Pistol Squat'])
+  })
+
+  test('in a workout’s exercise picker, search stays pinned to the top of the window', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await page.getByRole('button', { name: '+ Add exercise' }).click()
+    await page.locator('.modal-body').evaluate((el) => el.scrollTo(0, 1500))
+    const box = await page.getByPlaceholder('Search exercises or muscles…').boundingBox()
+    expect(box!.y).toBeLessThan(16) // flush with the top, nothing peeking above
+  })
+})
