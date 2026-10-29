@@ -1,23 +1,31 @@
+import { LIBRARY } from './library'
 import type { Exercise, Session } from './types'
 
-/** A calisthenics goal and the library exercises that lead to it, easiest first. */
+/** A calisthenics goal and the library exercises that lead to it, easiest first; named after its final step. */
 export type SkillPath = { name: string; steps: string[] }
 
-export const SKILL_PATHS: SkillPath[] = [
-  { name: 'Pull-up', steps: ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'l-sit-pull-up', 'archer-pull-up'] },
-  { name: 'Muscle-up', steps: ['pull-up', 'explosive-pull-up', 'straight-bar-dip', 'muscle-up'] },
-  { name: 'One-arm push-up', steps: ['incline-push-up', 'push-up', 'diamond-push-up', 'archer-push-up', 'one-arm-push-up'] },
-  { name: 'Dips', steps: ['bench-dip', 'negative-dip', 'parallel-bar-dip', 'russian-dip', 'ring-dip'] },
-  { name: 'Handstand push-up', steps: ['pike-push-up', 'elevated-pike-push-up', 'wall-handstand-push-up', 'handstand-push-up'] },
-  { name: 'Handstand', steps: ['crow-pose', 'wall-handstand', 'freestanding-handstand'] },
-  { name: 'Pistol squat', steps: ['bodyweight-squat', 'bulgarian-split-squat', 'cossack-squat', 'box-pistol-squat', 'pistol-squat'] },
-  { name: 'Front lever', steps: ['tuck-front-lever', 'advanced-tuck-front-lever', 'straddle-front-lever', 'front-lever'] },
-  { name: 'Back lever', steps: ['skin-the-cat', 'tuck-back-lever', 'back-lever'] },
-  { name: 'Planche', steps: ['planche-lean', 'tuck-planche', 'straddle-planche'] },
-  { name: 'L-sit to V-sit', steps: ['support-hold', 'tuck-l-sit', 'l-sit', 'v-sit'] },
-  { name: 'Nordic curl', steps: ['glute-bridge', 'single-leg-glute-bridge', 'single-leg-romanian-deadlift', 'nordic-curl'] },
-  { name: 'Toes-to-bar', steps: ['hanging-knee-raise', 'hanging-leg-raise', 'toes-to-bar', 'windshield-wiper'] },
-].map((p) => ({ ...p, steps: p.steps.map((s) => `lib-${s}`) }))
+const LADDERS: string[][] = [
+  ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'l-sit-pull-up', 'archer-pull-up'],
+  ['pull-up', 'explosive-pull-up', 'straight-bar-dip', 'muscle-up'],
+  ['incline-push-up', 'push-up', 'diamond-push-up', 'archer-push-up', 'one-arm-push-up'],
+  ['bench-dip', 'negative-dip', 'parallel-bar-dip', 'russian-dip', 'ring-dip'],
+  ['pike-push-up', 'elevated-pike-push-up', 'wall-handstand-push-up', 'handstand-push-up'],
+  ['crow-pose', 'wall-handstand', 'freestanding-handstand'],
+  ['bodyweight-squat', 'bulgarian-split-squat', 'cossack-squat', 'box-pistol-squat', 'pistol-squat'],
+  ['tuck-front-lever', 'advanced-tuck-front-lever', 'straddle-front-lever', 'front-lever'],
+  ['skin-the-cat', 'tuck-back-lever', 'back-lever'],
+  ['planche-lean', 'tuck-planche', 'straddle-planche'],
+  ['support-hold', 'tuck-l-sit', 'l-sit', 'v-sit'],
+  ['glute-bridge', 'single-leg-glute-bridge', 'single-leg-romanian-deadlift', 'nordic-curl'],
+  ['hanging-knee-raise', 'hanging-leg-raise', 'toes-to-bar', 'windshield-wiper'],
+]
+
+export const SKILL_PATHS: SkillPath[] = LADDERS.map((ladder) => {
+  const steps = ladder.map((s) => `lib-${s}`)
+  const goal = LIBRARY.find((e) => e.id === steps[steps.length - 1])
+  if (!goal) throw new Error(`Unknown exercise ${steps[steps.length - 1]} ending a skill path`)
+  return { name: goal.name, steps }
+})
 
 /** A step is mastered with one set this good: then it's time for the next. */
 export const MILESTONE = { reps: 12, seconds: 20 } as const

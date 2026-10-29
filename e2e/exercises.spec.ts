@@ -77,13 +77,13 @@ test.describe('skill paths', () => {
     await openApp(page, appData({ sessions: [finished('s1', 'Pull day', '2026-10-05T18:00:00+01:00', [entry('lib-pull-up', [{ reps: 8 }, { reps: 9 }])])] }))
     await tab(page, 'Exercises')
     await page.getByRole('button', { name: /Skill paths/ }).click()
-    const pullUps = page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Pull-up', exact: true }) })
+    const pullUps = page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Archer Pull-up' }) })
     await expect(pullUps).toContainText('Step 3 of 5')
     await expect(pullUps.locator('li.current')).toContainText('Pull-up')
     await expect(pullUps.locator('li.current')).toContainText('best 9 reps / 12 reps')
     await expect(pullUps.locator('li.done')).toHaveCount(2)
     await expect(pullUps.locator('li.done').first()).toContainText('passed') // skipped on the way
-    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front lever' }) })).toContainText('Step 1 of 4')
+    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front Lever', exact: true }) })).toContainText('Step 1 of 4')
 
     await pullUps.getByRole('button', { name: 'Pull-up', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Pull-up', exact: true })).toBeVisible()
@@ -96,7 +96,7 @@ test.describe('skill paths', () => {
     await openApp(page, appData({ equipment: [] }))
     await tab(page, 'Exercises')
     await page.getByRole('button', { name: /Skill paths/ }).click()
-    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front lever' }) }).locator('li').first()).toContainText('needs Pull-up bar or Rings')
+    await expect(page.locator('.skill-path', { has: page.getByRole('heading', { name: 'Front Lever', exact: true }) }).locator('li').first()).toContainText('needs Pull-up bar or Rings')
   })
 })
 

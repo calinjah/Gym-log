@@ -4,8 +4,8 @@ import { MILESTONE, pathProgress, SKILL_PATHS } from './skillPaths'
 import { entry, session, set } from './test/fixtures'
 
 const byId = new Map(LIBRARY.map((e) => [e.id, e]))
-const pullUpPath = SKILL_PATHS.find((p) => p.name === 'Pull-up')!
-const frontLever = SKILL_PATHS.find((p) => p.name === 'Front lever')!
+const pullUpPath = SKILL_PATHS.find((p) => p.name === 'Archer Pull-up')!
+const frontLever = SKILL_PATHS.find((p) => p.name === 'Front Lever')!
 const logged = (id: string, ...reps: number[]) => session({ entries: [entry(id, reps.map((r) => set(r)))] })
 const states = (path: typeof pullUpPath, ...sessions: ReturnType<typeof logged>[]) => pathProgress(path, byId, sessions).map((s) => s.state)
 
@@ -18,6 +18,15 @@ describe('skill paths', () => {
       expect([...levels].sort(), path.name).toEqual(levels)
       expect(new Set(path.steps).size, path.name).toBe(path.steps.length)
     }
+  })
+
+  it('are named after their goal, the final step, never after a step on the way', () => {
+    for (const path of SKILL_PATHS) {
+      expect(path.name).toBe(byId.get(path.steps[path.steps.length - 1])?.name)
+      const earlier = path.steps.slice(0, -1).map((id) => byId.get(id)!.name.toLowerCase())
+      expect(earlier, path.name).not.toContain(path.name.toLowerCase())
+    }
+    expect(SKILL_PATHS.map((p) => p.name)).toContain('Archer Pull-up')
   })
 
   it('start at the first step with no history', () => {
