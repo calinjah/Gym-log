@@ -255,6 +255,22 @@ test.describe('hold timer for timed sets', () => {
     expect((await saved(page)).active.entries[0].sets[1]).toEqual({ reps: 12, weight: 0, done: true })
   })
 
+  test('easier and harder swaps wait until the hold ends', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Tuck L-sit')
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    await page.getByLabel('Set 1 done').click()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await page.getByRole('button', { name: 'Start set 2 hold' }).click()
+    // A swap would split the exercise and move the held set, which the hold finds by position.
+    await expect(page.getByRole('button', { name: /^Easier:/ })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /^Harder:/ })).toBeDisabled()
+    await page.clock.runFor(5_000 + 3_400)
+    await page.getByRole('button', { name: 'Stop' }).click()
+    expect((await saved(page)).active.entries[0].sets[1]).toEqual({ reps: 3, weight: 0, done: true })
+  })
+
   test('rep-based exercises have no hold button', async ({ page }) => {
     await openApp(page)
     await page.getByRole('button', { name: 'Start empty workout' }).click()

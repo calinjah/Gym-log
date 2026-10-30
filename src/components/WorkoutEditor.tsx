@@ -135,8 +135,16 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
               {lastNote && <p className="muted small last-note">Note: {lastNote}</p>}
               {(easier || harder) && (
                 <div className="swap-row">
-                  {easier && <button onClick={() => edit((s) => swapExercise(s, i, easier.id))}>Easier: {easier.name}</button>}
-                  {harder && <button onClick={() => edit((s) => swapExercise(s, i, harder.id))}>Harder: {harder.name}</button>}
+                  {easier && (
+                    <button disabled={holding} onClick={() => edit((s) => swapExercise(s, i, easier.id))}>
+                      Easier: {easier.name}
+                    </button>
+                  )}
+                  {harder && (
+                    <button disabled={holding} onClick={() => edit((s) => swapExercise(s, i, harder.id))}>
+                      Harder: {harder.name}
+                    </button>
+                  )}
                 </div>
               )}
               <table className="sets">
