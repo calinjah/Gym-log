@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LIBRARY } from './library'
-import { MILESTONE, pathProgress, SKILL_PATHS } from './skillPaths'
+import { HOLD_TARGETS, pathProgress, REPS_TARGET, SKILL_PATHS } from './skillPaths'
 import { entry, session, set } from './test/fixtures'
 
 const byId = new Map(LIBRARY.map((e) => [e.id, e]))
@@ -43,11 +43,28 @@ describe('skill paths', () => {
     expect(progress[3].best).toBe(0)
   })
 
-  it('move you on once a set reaches the milestone (12 reps or a 20 s hold)', () => {
-    expect(MILESTONE).toEqual({ reps: 12, seconds: 20 })
+  it('move you on once a set reaches 12 reps', () => {
+    expect(REPS_TARGET).toBe(12)
     expect(states(pullUpPath, logged('lib-pull-up', 10), logged('lib-pull-up', 12))).toEqual(['done', 'done', 'done', 'current', 'later'])
-    expect(states(frontLever, logged('lib-tuck-front-lever', 19))).toEqual(['current', 'later', 'later', 'later'])
-    expect(states(frontLever, logged('lib-tuck-front-lever', 20))).toEqual(['done', 'current', 'later', 'later'])
+  })
+
+  it('give each hold its own target: longer for basic holds, shorter for hard levers and planches', () => {
+    expect(pathProgress(frontLever, byId, []).map((s) => s.target)).toEqual([15, 15, 10, 10])
+    expect(states(frontLever, logged('lib-tuck-front-lever', 14))).toEqual(['current', 'later', 'later', 'later'])
+    expect(states(frontLever, logged('lib-tuck-front-lever', 15))).toEqual(['done', 'current', 'later', 'later'])
+    const planche = SKILL_PATHS.find((p) => p.name === 'Straddle Planche')!
+    expect(pathProgress(planche, byId, []).map((s) => s.target)).toEqual([30, 15, 10])
+  })
+
+  it('have a hold target for every timed step, and none for anything else', () => {
+    const timed = SKILL_PATHS.flatMap((p) => p.steps).filter((id) => byId.get(id)!.measure === 'seconds')
+    expect(Object.keys(HOLD_TARGETS).sort()).toEqual([...new Set(timed)].sort())
+  })
+
+  it('build pistols through the shrimp squat and archer pull-ups through the typewriter', () => {
+    const pistol = SKILL_PATHS.find((p) => p.name === 'Pistol Squat')!
+    expect(pistol.steps).toContain('lib-shrimp-squat')
+    expect(pullUpPath.steps).toEqual(['lib-band-assisted-pull-up', 'lib-negative-pull-up', 'lib-pull-up', 'lib-typewriter-pull-up', 'lib-archer-pull-up'])
   })
 
   it('show your best set and mastery of the whole path', () => {

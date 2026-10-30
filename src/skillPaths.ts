@@ -5,13 +5,13 @@ import type { Exercise, Session } from './types'
 export type SkillPath = { name: string; steps: string[] }
 
 const LADDERS: string[][] = [
-  ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'l-sit-pull-up', 'archer-pull-up'],
+  ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'typewriter-pull-up', 'archer-pull-up'],
   ['pull-up', 'explosive-pull-up', 'straight-bar-dip', 'muscle-up'],
   ['incline-push-up', 'push-up', 'diamond-push-up', 'archer-push-up', 'one-arm-push-up'],
   ['bench-dip', 'negative-dip', 'parallel-bar-dip', 'russian-dip', 'ring-dip'],
   ['pike-push-up', 'elevated-pike-push-up', 'wall-handstand-push-up', 'handstand-push-up'],
   ['crow-pose', 'wall-handstand', 'freestanding-handstand'],
-  ['bodyweight-squat', 'bulgarian-split-squat', 'cossack-squat', 'box-pistol-squat', 'pistol-squat'],
+  ['bodyweight-squat', 'bulgarian-split-squat', 'cossack-squat', 'shrimp-squat', 'box-pistol-squat', 'pistol-squat'],
   ['tuck-front-lever', 'advanced-tuck-front-lever', 'straddle-front-lever', 'front-lever'],
   ['skin-the-cat', 'tuck-back-lever', 'back-lever'],
   ['planche-lean', 'tuck-planche', 'straddle-planche'],
@@ -20,6 +20,34 @@ const LADDERS: string[][] = [
   ['hanging-knee-raise', 'hanging-leg-raise', 'toes-to-bar', 'windshield-wiper'],
 ]
 
+/** A step done for reps is mastered with one set this good: then it's time for the next. */
+export const REPS_TARGET = 12
+
+/**
+ * Seconds to hold in one set to master each timed step, from coaching guides: basic holds longer,
+ * hard levers and planches shorter (10–15 s).
+ */
+export const HOLD_TARGETS: Record<string, number> = Object.fromEntries(
+  Object.entries({
+    'crow-pose': 30,
+    'wall-handstand': 60,
+    'freestanding-handstand': 30,
+    'tuck-front-lever': 15,
+    'advanced-tuck-front-lever': 15,
+    'straddle-front-lever': 10,
+    'front-lever': 10,
+    'tuck-back-lever': 15,
+    'back-lever': 10,
+    'planche-lean': 30,
+    'tuck-planche': 15,
+    'straddle-planche': 10,
+    'support-hold': 60,
+    'tuck-l-sit': 20,
+    'l-sit': 20,
+    'v-sit': 10,
+  }).map(([id, seconds]) => [`lib-${id}`, seconds]),
+)
+
 export const SKILL_PATHS: SkillPath[] = LADDERS.map((ladder) => {
   const steps = ladder.map((s) => `lib-${s}`)
   const goal = LIBRARY.find((e) => e.id === steps[steps.length - 1])
@@ -27,8 +55,13 @@ export const SKILL_PATHS: SkillPath[] = LADDERS.map((ladder) => {
   return { name: goal.name, steps }
 })
 
-/** A step is mastered with one set this good: then it's time for the next. */
-export const MILESTONE = { reps: 12, seconds: 20 } as const
+/** One set this good masters a step. */
+function targetOf(exercise: Exercise): number {
+  if (exercise.measure === 'reps') return REPS_TARGET
+  const seconds = HOLD_TARGETS[exercise.id]
+  if (seconds === undefined) throw new Error(`No hold target for ${exercise.id}`)
+  return seconds
+}
 
 export type StepProgress = {
   exercise: Exercise
@@ -47,7 +80,7 @@ export function pathProgress(path: SkillPath, exercises: Map<string, Exercise>, 
     const exercise = exercises.get(id)
     if (!exercise) throw new Error(`Unknown exercise ${id} in the ${path.name} path`)
     const reps = sessions.flatMap((s) => s.entries.filter((e) => e.exerciseId === id).flatMap((e) => e.sets.map((set) => set.reps)))
-    return { exercise, best: reps.length > 0 ? Math.max(...reps) : null, target: MILESTONE[exercise.measure] }
+    return { exercise, best: reps.length > 0 ? Math.max(...reps) : null, target: targetOf(exercise) }
   })
   const hardest = steps.findLastIndex((s) => s.best !== null && s.best > 0)
   const current = hardest === -1 ? 0 : steps[hardest].best! >= steps[hardest].target ? hardest + 1 : hardest

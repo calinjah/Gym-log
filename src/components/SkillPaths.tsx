@@ -15,7 +15,8 @@ export function SkillPaths({ data, onOpen }: Props) {
   return (
     <>
       <p className="muted small">
-        Move to the next step once you can do 12 clean reps (or hold 20 s) in one set. Tap a step to see its history.
+        Move to the next step once one set reaches its goal: 12 clean reps, or the hold time shown (shorter for hard
+        levers and planches). Tap a step to see its history.
       </p>
       {SKILL_PATHS.map((path) => {
         const steps = pathProgress(path, exercises, data.sessions)

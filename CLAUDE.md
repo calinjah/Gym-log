@@ -41,7 +41,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 - **Minimal style:** A (vertical pull + push, squat/lunge) and B (horizontal pull + push, hinge). Plans repeat weekly, so with 3 days it's A, B, A every week (no week-to-week alternation).
 - **Prefer rings:** restrict to ring exercises only when one is as close to the target level as anything available.
 - Levels: history (last 8 weeks, or since the starting test if newer) → starting test → level setting. Starting test: 6–11 reps = the exercise's own difficulty, 12–19 +1, 20+ +2, 1–5 −1, 0 −2.
-- Skill paths are named after their final step (derived, never typed). Next step at 12 reps or a 20 s hold; a step logged only at 0 is attempted, not reached (user decision).
+- Skill paths are named after their final step (derived, never typed). Next step at 12 reps, or a per-step hold time (`HOLD_TARGETS`: 60 s basics, 10–15 s levers and planches, from coaching guides; user chose this over a flat 20 s); a step logged only at 0 is attempted, not reached (user decision).
 - **Past days are pinned:** repeats only compute today onwards; `pinPastDays` (on start and when the app returns from the background) saves each passed day's repeating plan into `schedule`, tracked by `pinnedThrough` (null = never: the last 7 days). A past planned day with no workout logged is `missed` (red ring). Deleting a plan (e.g. regenerating a programme) moves its past days to `pastPlanNames` (day → name, shown as "(deleted plan)"); upcoming days just lose it. A day is never in both `schedule` and `pastPlanNames`.
 - Generated plans store section labels (`SECTION`: Warm-up, Skill, Ramp-up, Core, Stretch) in entry `notes`; they are not user notes.
 
