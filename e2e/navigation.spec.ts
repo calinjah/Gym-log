@@ -1,4 +1,4 @@
-import { appData, entry, expect, openApp, planOf, saved, tab, test } from './helpers'
+import { appData, entry, expect, finished, openApp, planOf, saved, tab, test } from './helpers'
 
 const scrollY = (page: import('@playwright/test').Page) => page.evaluate(() => window.scrollY)
 
@@ -53,5 +53,25 @@ test.describe('back buttons', () => {
     await page.getByRole('button', { name: '+ Create new exercise' }).click()
     await page.getByRole('button', { name: '← Back' }).click()
     await expect(page.getByRole('heading', { name: 'Add exercise' })).toBeVisible()
+  })
+})
+
+test.describe('narrow screens', () => {
+  test('a very long name without spaces wraps instead of widening the page', async ({ page }) => {
+    const long = 'Supercalifragilisticexpialidocious'.repeat(4)
+    const custom = { id: 'c1', name: long, category: 'Legs', muscles: 'Quads', measure: 'reps', custom: true, pattern: null, level: 2, equipment: [] }
+    await page.setViewportSize({ width: 320, height: 640 })
+    await openApp(page, appData({
+      customExercises: [custom],
+      plans: [planOf('pa', long, [entry('c1', [{ reps: 10, done: false }])])],
+      sessions: [finished('s1', long, '2026-10-08T18:00:00+01:00', [entry('c1', [{ reps: 10 }])])],
+    }))
+    const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - 320)
+    expect(await overflow(), 'Workout tab overflows').toBe(0)
+    for (const name of ['History', 'Exercises', 'Settings'] as const) {
+      await tab(page, name)
+      if (name === 'Exercises') await page.locator('.chip', { hasText: 'My exercises' }).click()
+      expect(await overflow(), `${name} tab overflows`).toBe(0)
+    }
   })
 })

@@ -57,4 +57,4 @@ How-to tips per exercise; effort (RIR) per set used by progression; workout summ
 
 ## Daily check
 
-A scheduled task ("Gym-log daily app check", weekdays 09:55 Europe/London) runs a baseline plus 2–3 new exploratory areas, fixes quick low-risk bugs, and reports major ones for a decision. Areas already covered: odd numeric inputs; damaged backup imports; a year of history (performance); kg↔lb round trips; DST and midnight; accessibility names (now a permanent test). Pick new areas next.
+A scheduled task ("Gym-log daily app check", weekdays 09:55 Europe/London) runs a baseline plus 2–3 new exploratory areas, fixes quick low-risk bugs, and reports major ones for a decision. Areas already covered: odd numeric inputs; damaged backup imports; a year of history (performance); kg↔lb round trips; DST and midnight; accessibility names (now a permanent test); generator combinations (equipment × level × length × style × days); calendar month boundaries 2024–2032 across time zones; long and emoji names on a 320px screen. Pick new areas next.
