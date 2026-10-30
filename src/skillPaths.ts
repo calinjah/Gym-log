@@ -40,6 +40,7 @@ export type StepProgress = {
 /**
  * Where you are on a path, from your workout history: the current step is the hardest one you've done,
  * or the one after it once you've mastered it. Steps before it count as done (you may have skipped some).
+ * A step logged only at 0 was attempted, not done.
  */
 export function pathProgress(path: SkillPath, exercises: Map<string, Exercise>, sessions: Session[]): StepProgress[] {
   const steps = path.steps.map((id) => {
@@ -48,7 +49,7 @@ export function pathProgress(path: SkillPath, exercises: Map<string, Exercise>, 
     const reps = sessions.flatMap((s) => s.entries.filter((e) => e.exerciseId === id).flatMap((e) => e.sets.map((set) => set.reps)))
     return { exercise, best: reps.length > 0 ? Math.max(...reps) : null, target: MILESTONE[exercise.measure] }
   })
-  const hardest = steps.findLastIndex((s) => s.best !== null)
+  const hardest = steps.findLastIndex((s) => s.best !== null && s.best > 0)
   const current = hardest === -1 ? 0 : steps[hardest].best! >= steps[hardest].target ? hardest + 1 : hardest
   return steps.map((s, i) => ({ ...s, state: i < current ? 'done' : i === current ? 'current' : 'later' }))
 }

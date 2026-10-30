@@ -37,6 +37,12 @@ describe('skill paths', () => {
     expect(states(pullUpPath, logged('lib-pull-up', 8))).toEqual(['done', 'done', 'current', 'later', 'later'])
   })
 
+  it('count a step logged only at 0 as attempted, not reached', () => {
+    const progress = pathProgress(frontLever, byId, [logged('lib-tuck-front-lever', 10), logged('lib-front-lever', 0)])
+    expect(progress.map((s) => s.state)).toEqual(['current', 'later', 'later', 'later'])
+    expect(progress[3].best).toBe(0)
+  })
+
   it('move you on once a set reaches the milestone (12 reps or a 20 s hold)', () => {
     expect(MILESTONE).toEqual({ reps: 12, seconds: 20 })
     expect(states(pullUpPath, logged('lib-pull-up', 10), logged('lib-pull-up', 12))).toEqual(['done', 'done', 'done', 'current', 'later'])
