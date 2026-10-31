@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LIBRARY } from './library'
-import { swapExercise, swapTarget, type Direction } from './swap'
+import { replaceExercise, swapExercise, swapTarget, type Direction } from './swap'
 import { entry, session, set } from './test/fixtures'
 import type { Workout } from './types'
 
@@ -73,5 +73,26 @@ describe('easier and harder during a workout', () => {
   it('refuses when every set is already done', () => {
     const w = session({ entries: [entry('lib-pull-up', [set(5, 0, true)])] })
     expect(() => swapExercise(w, 0, 'lib-chin-up')).toThrow()
+  })
+})
+
+describe('easier and harder when editing a plan or past workout', () => {
+  it('replaces every set, keeping the reps and clearing the weights', () => {
+    const w = session({ entries: [entry('lib-pull-up', [set(5, 10, true), set(5, 10, true)])] })
+    replaceExercise(w, 0, 'lib-band-assisted-pull-up')
+    expect(w.entries).toHaveLength(1)
+    expect(w.entries[0]).toMatchObject({ exerciseId: 'lib-band-assisted-pull-up', sets: [set(5, 0, true), set(5, 0, true)], swappedFrom: ['lib-pull-up'] })
+    // Harder then goes back to the exercise you started with.
+    expect(target(w, 0, 'harder')).toBe('lib-pull-up')
+    replaceExercise(w, 0, 'lib-pull-up')
+    expect(w.entries[0]).toMatchObject({ exerciseId: 'lib-pull-up', swappedFrom: [] })
+  })
+
+  it('going back on a part split off during the workout rejoins the original exercise', () => {
+    const w = session({
+      entries: [entry('lib-pull-up', [set(5)]), entry('lib-band-assisted-pull-up', [set(5)], { supersetWithPrevious: true, swappedFrom: ['lib-pull-up'] })],
+    })
+    replaceExercise(w, 1, 'lib-pull-up')
+    expect(w.entries.map((e) => [e.exerciseId, e.sets.length])).toEqual([['lib-pull-up', 2]])
   })
 })

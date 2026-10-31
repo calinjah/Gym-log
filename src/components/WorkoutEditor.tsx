@@ -6,7 +6,7 @@ import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
 import { endsGroup, groupName, groupSize, linkedToPrevious, supersetLabels } from '../superset'
 import { allExercises, blankExercise, categoriesOf, DEFAULT_REST, exerciseMap, sessionsWithExercise, type Update } from '../store'
-import { swapExercise, swapTarget, type Direction } from '../swap'
+import { replaceExercise, swapExercise, swapTarget, type Direction } from '../swap'
 import type { Data, Exercise, SetEntry, Workout } from '../types'
 import { ExerciseBrowser } from './ExerciseBrowser'
 import { ExerciseForm } from './ExerciseForm'
@@ -71,8 +71,9 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const lastSets = lastEntry?.sets
         // What you noted last time (generated plans' section labels such as "Warm-up" aren't notes).
         const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
-        // During a workout, swap to an easier or harder variation (or back) for the sets still to do.
-        const swappable = live && entry.sets.some((s) => !s.done)
+        // Swap to an easier or harder variation (or back): during a workout for the sets still to do, otherwise for all.
+        const swappable = !live || entry.sets.some((s) => !s.done)
+        const swap = (to: Exercise) => edit((s) => (live ? swapExercise : replaceExercise)(s, i, to.id))
         const variation = (direction: Direction) =>
           swappable ? swapTarget(entry, allExercises(data), data.equipment, inWorkout, direction) : null
         const easier = variation('easier')
@@ -136,12 +137,12 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
               {(easier || harder) && (
                 <div className="swap-row">
                   {easier && (
-                    <button disabled={holding} onClick={() => edit((s) => swapExercise(s, i, easier.id))}>
+                    <button disabled={holding} onClick={() => swap(easier)}>
                       Easier: {easier.name}
                     </button>
                   )}
                   {harder && (
-                    <button disabled={holding} onClick={() => edit((s) => swapExercise(s, i, harder.id))}>
+                    <button disabled={holding} onClick={() => swap(harder)}>
                       Harder: {harder.name}
                     </button>
                   )}

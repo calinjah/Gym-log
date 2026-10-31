@@ -1,10 +1,10 @@
 import { nextVariation } from './progression'
-import type { Equipment, Exercise, ExerciseEntry, Workout } from './types'
+import type { Equipment, Exercise, ExerciseEntry, SetEntry, Workout } from './types'
 
 export type Direction = 'easier' | 'harder'
 
 /**
- * What Easier or Harder swaps an exercise to during a workout: back to the exercise it was swapped
+ * What Easier or Harder swaps an exercise to: back to the exercise it was swapped
  * from when that lies in this direction (so Easier then Harder returns to where you started),
  * otherwise the next variation that way.
  */
@@ -31,27 +31,38 @@ export function swapTarget(
 }
 
 /**
- * Swap exercise `i` of a workout for another, keeping the reps (weights reset: it's a different exercise).
- * Sets already ticked stay recorded under the original exercise; the rest move to the new one right after
- * it. Swapping back to the exercise it was split from rejoins that exercise.
+ * Swap exercise `i` of a workout in progress for another, keeping the reps (weights reset: it's a different
+ * exercise). Sets already ticked stay recorded under the original exercise; the rest move to the new one
+ * right after it.
  */
 export function swapExercise(w: Workout, i: number, exerciseId: string) {
   const entry = w.entries[i]
-  const todo = entry.sets.filter((s) => !s.done).map((s) => ({ ...s, weight: 0 }))
+  const todo = entry.sets.filter((s) => !s.done)
   if (todo.length === 0) throw new Error('Every set of this exercise is already done')
-  const goingBack = entry.swappedFrom.at(-1) === exerciseId
-  const swappedFrom = goingBack ? entry.swappedFrom.slice(0, -1) : [...entry.swappedFrom, entry.exerciseId]
   const done = entry.sets.filter((s) => s.done)
-  if (done.length === 0) {
-    const origin = w.entries[i - 1]
-    if (goingBack && entry.supersetWithPrevious && origin?.exerciseId === exerciseId) {
-      origin.sets.push(...todo)
-      w.entries.splice(i, 1)
-      return
-    }
-    Object.assign(entry, { exerciseId, sets: todo, swappedFrom })
+  if (done.length === 0) return replaceExercise(w, i, exerciseId)
+  entry.sets = done
+  w.entries.splice(i + 1, 0, { ...entry, exerciseId, sets: withoutWeight(todo), supersetWithPrevious: true, swappedFrom: trail(entry, exerciseId) })
+}
+
+/**
+ * Change exercise `i` of a workout to another for all its sets, keeping the reps (weights reset). Swapping
+ * back to the exercise it was split from during the workout rejoins that exercise.
+ */
+export function replaceExercise(w: Workout, i: number, exerciseId: string) {
+  const entry = w.entries[i]
+  const sets = withoutWeight(entry.sets)
+  const origin = w.entries[i - 1]
+  if (entry.swappedFrom.at(-1) === exerciseId && entry.supersetWithPrevious && origin?.exerciseId === exerciseId) {
+    origin.sets.push(...sets)
+    w.entries.splice(i, 1)
     return
   }
-  entry.sets = done
-  w.entries.splice(i + 1, 0, { ...entry, exerciseId, sets: todo, supersetWithPrevious: true, swappedFrom })
+  Object.assign(entry, { exerciseId, sets, swappedFrom: trail(entry, exerciseId) })
 }
+
+const withoutWeight = (sets: SetEntry[]) => sets.map((s) => ({ ...s, weight: 0 }))
+
+/** The swap trail after swapping `entry` to `exerciseId`: going back along it shortens it. */
+const trail = (entry: ExerciseEntry, exerciseId: string) =>
+  entry.swappedFrom.at(-1) === exerciseId ? entry.swappedFrom.slice(0, -1) : [...entry.swappedFrom, entry.exerciseId]

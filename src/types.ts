@@ -37,7 +37,7 @@ export type ExerciseEntry = {
   notes: string
   rest: number // rest timer after each set, in seconds
   supersetWithPrevious: boolean // grouped with the exercise above; rest starts after the group's last exercise
-  swappedFrom: string[] // during a workout, exercises this was swapped from (latest last): Easier/Harder go back along it
+  swappedFrom: string[] // exercises this was swapped from (latest last): Easier/Harder go back along it
 }
 
 /** What the workout editor edits: shared by sessions and plans. */

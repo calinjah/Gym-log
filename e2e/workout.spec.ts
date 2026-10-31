@@ -310,10 +310,26 @@ test.describe('easier and harder variations', () => {
     await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
   })
 
-  test('no swap buttons when editing a plan', async ({ page }) => {
-    await openApp(page, appData({ plans: [planOf('pa', 'Pull A', [entry('lib-pull-up', [{ reps: 5, done: false }])])] }))
+  test('swap an exercise when editing a plan', async ({ page }) => {
+    await openApp(page, appData({ plans: [planOf('pa', 'Pull A', [entry('lib-pull-up', [{ reps: 5, weight: 10 }, { reps: 5, weight: 10 }])])] }))
     await page.locator('.plan').getByRole('button', { name: 'Edit' }).click()
-    await expect(page.locator('.swap-row')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Band-assisted Pull-up'])
+    const plan = (await saved(page)).plans[0]
+    expect(plan.entries.map((e: { exerciseId: string; sets: { reps: number; weight: number }[] }) => [e.exerciseId, e.sets.map((s) => [s.reps, s.weight])])).toEqual([
+      ['lib-band-assisted-pull-up', [[5, 0], [5, 0]]],
+    ])
+    await page.getByRole('button', { name: 'Harder: Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
+  })
+
+  test('swap an exercise when editing a past workout', async ({ page }) => {
+    await openApp(page, appData({ sessions: [finished('s1', 'Pulls', '2026-10-05T18:00:00+01:00', [entry('lib-pull-up', [{ reps: 5 }])])] }))
+    await tab(page, 'History')
+    await page.locator('.list-item', { hasText: 'Pulls' }).click()
+    await page.getByRole('button', { name: 'Harder: Explosive Pull-up' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Explosive Pull-up'])
+    expect((await saved(page)).sessions[0].entries[0].exerciseId).toBe('lib-explosive-pull-up')
   })
 })
 
