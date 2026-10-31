@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LIBRARY } from './library'
+import { LIBRARY, MAX_LEVEL } from './library'
 
 describe('exercise library', () => {
   it('has unique ids and names', () => {
@@ -17,7 +17,7 @@ describe('exercise library', () => {
   it('tags every exercise with a valid difficulty and equipment', () => {
     for (const e of LIBRARY) {
       expect(e.level, e.name).toBeGreaterThanOrEqual(1)
-      expect(e.level, e.name).toBeLessThanOrEqual(5)
+      expect(e.level, e.name).toBeLessThanOrEqual(MAX_LEVEL)
       expect(new Set(e.equipment).size, e.name).toBe(e.equipment.length)
     }
   })

@@ -1,5 +1,5 @@
 import { EQUIPMENT_LABELS, LEVEL_LABELS, PATTERN_LABELS } from './labels'
-import { LIBRARY } from './library'
+import { LEVEL_STEPS, LIBRARY } from './library'
 import type { Data, DayType, Measure, Unit } from './types'
 
 /**
@@ -103,7 +103,7 @@ const EXERCISE = shape({
   measure: oneOf(...MEASURES),
   custom: boolean,
   pattern: nullable(oneOf(...PATTERNS)),
-  level: oneOf(1, 2, 3, 4, 5),
+  level: oneOf(...LEVEL_STEPS),
   equipment: listOf(oneOf(...EQUIPMENT)),
 })
 

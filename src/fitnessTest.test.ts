@@ -12,10 +12,11 @@ describe('starting test', () => {
     expect([0, 10, 15, 30, 60, 120].map((s) => levelFromMax(hollow, s))).toEqual([1, 1, 2, 3, 4, 4])
   })
 
-  it('stays within difficulty 1–5', () => {
+  it('stays within difficulty 1–6', () => {
     const pushUp = byId.get('lib-push-up')! // difficulty 2
     expect(levelFromMax(pushUp, 0)).toBe(1)
     expect(levelFromMax(pushUp, 50)).toBe(4)
+    expect(levelFromMax(byId.get('lib-archer-pull-up')!, 50)).toBe(6) // difficulty 5, two above is past the top
   })
 
   it('sets each movement from the first test done that covers it', () => {

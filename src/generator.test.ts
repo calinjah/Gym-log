@@ -327,6 +327,7 @@ describe('difficulty from your history', () => {
     expect(levels([done('lib-archer-pull-up', [[3]])]).vpull).toBe(4) // level 5, under 6 → a step below
     expect(levels([done('lib-pull-up', [[6, 10]])]).vpull).toBe(4) // weighted 6+ reps → a step above
     expect(levels([done('lib-tuck-front-lever', [[30]])]).skill).toBe(3) // hold 30 s+ → a step above
+    expect(levels([done('lib-archer-pull-up', [[12]])]).vpull).toBe(6) // up to the top difficulty, 6
   })
 
   it('takes the best result per movement and keeps movements separate', () => {

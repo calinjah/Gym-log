@@ -5,7 +5,7 @@ import type { Exercise, Session } from './types'
 export type SkillPath = { name: string; steps: string[] }
 
 const LADDERS: string[][] = [
-  ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'typewriter-pull-up', 'archer-pull-up'],
+  ['band-assisted-pull-up', 'negative-pull-up', 'pull-up', 'explosive-pull-up', 'archer-pull-up', 'typewriter-pull-up'],
   ['pull-up', 'explosive-pull-up', 'straight-bar-dip', 'muscle-up'],
   ['incline-push-up', 'push-up', 'diamond-push-up', 'archer-push-up', 'one-arm-push-up'],
   ['bench-dip', 'negative-dip', 'parallel-bar-dip', 'russian-dip', 'ring-dip'],

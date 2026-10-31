@@ -37,7 +37,7 @@ describe('checking a data file', () => {
     ['a past day both scheduled and kept as deleted', (d) => ({ ...d, pastPlanNames: { '2026-10-12': 'Old plan' } }), 'pastPlanNames.2026-10-12 is also in the schedule'],
     ['a calendar day pointing at a deleted plan', (d) => ({ ...d, schedule: { '2026-10-12': 'deleted' } }), 'schedule.2026-10-12 points at a missing plan "deleted"'],
     ['a starting test with an unknown exercise', (d) => ({ ...d, fitnessTest: { takenAt: '2026-10-09T10:00:00.000Z', results: { gone: 3 } } }), 'fitnessTest.results uses an unknown exercise "gone"'],
-    ['a custom exercise with a made-up difficulty', (d) => ({ ...d, customExercises: [{ id: 'c', name: 'C', category: 'X', muscles: '', measure: 'reps', custom: true, pattern: null, level: 9, equipment: [] }] }), 'customExercises[0].level should be one of 1, 2, 3, 4, 5'],
+    ['a custom exercise with a made-up difficulty', (d) => ({ ...d, customExercises: [{ id: 'c', name: 'C', category: 'X', muscles: '', measure: 'reps', custom: true, pattern: null, level: 9, equipment: [] }] }), 'customExercises[0].level should be one of 1, 2, 3, 4, 5, 6'],
   ])('refuses %s, saying where', (_, corrupt, message) => {
     expect(() => parseData(json(corrupt(full())))).toThrow(`Not a valid gym data file: ${message}`)
   })

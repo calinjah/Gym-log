@@ -1,5 +1,6 @@
 import { DEFAULT_REST, newId } from './store'
 import { testLevels } from './fitnessTest'
+import { MAX_LEVEL } from './library'
 import type { DayType, Equipment, Exercise, ExerciseEntry, FitnessTest, Level, Pattern, Plan, Session } from './types'
 
 export type { DayType }
@@ -203,7 +204,7 @@ const RAMP_UP_SECONDS = 2 * (SCHEME.strength.reps * SECONDS_PER_REP + SETUP_SECO
 
 type Block = { items: { exercise: Exercise; amount: number }[]; sets: number; rest: number; note: string }
 
-const clampLevel = (n: number) => Math.min(5, Math.max(1, n))
+const clampLevel = (n: number) => Math.min(MAX_LEVEL, Math.max(1, n))
 
 const chunk = <T,>(items: T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, i * size + size))

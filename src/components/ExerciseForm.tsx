@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { EQUIPMENT_LABELS, PATTERN_LABELS } from '../labels'
+import { LEVEL_STEPS, MAX_LEVEL } from '../library'
 import type { Equipment, Exercise, Measure, Pattern } from '../types'
 
 type Props = {
@@ -73,9 +74,9 @@ export function ExerciseForm({ initial, categories, onSave, onCancel }: Props) {
           <label>
             Difficulty
             <select value={ex.level} onChange={(e) => setEx({ ...ex, level: Number(e.target.value) })}>
-              {[1, 2, 3, 4, 5].map((l) => (
+              {LEVEL_STEPS.map((l) => (
                 <option key={l} value={l}>
-                  {l} {l === 1 ? '(easiest)' : l === 5 ? '(hardest)' : ''}
+                  {l} {l === 1 ? '(easiest)' : l === MAX_LEVEL ? '(hardest)' : ''}
                 </option>
               ))}
             </select>

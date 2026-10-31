@@ -1,10 +1,14 @@
 import type { Equipment, Exercise, Measure, Pattern } from './types'
 
 /**
- * name, muscles, movement pattern (null = not used by the generator), difficulty step 1–5,
+ * name, muscles, movement pattern (null = not used by the generator), difficulty step 1–MAX_LEVEL,
  * equipment (any one of them is enough; empty = none needed), measure.
  */
 type Row = [name: string, muscles: string, pattern: Pattern | null, level: number, equipment: Equipment[], measure?: Measure]
+
+/** The hardest difficulty step. */
+export const MAX_LEVEL = 6
+export const LEVEL_STEPS = Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
 
 const groups: Record<string, Row[]> = {
   Push: [
@@ -37,7 +41,7 @@ const groups: Record<string, Row[]> = {
     ['Negative Pull-up', 'Lats, biceps', 'vpull', 2, ['bar', 'rings']],
     ['Band-assisted Pull-up', 'Lats, biceps', 'vpull', 2, ['bar', 'rings']],
     ['Archer Pull-up', 'Lats, biceps', 'vpull', 5, ['bar', 'rings']],
-    ['Typewriter Pull-up', 'Lats, biceps', 'vpull', 5, ['bar']],
+    ['Typewriter Pull-up', 'Lats, biceps', 'vpull', 6, ['bar']],
     ['L-sit Pull-up', 'Lats, biceps, core', 'vpull', 4, ['bar', 'rings']],
     ['Explosive Pull-up', 'Lats, biceps', 'vpull', 4, ['bar', 'rings']],
     ['Muscle-up', 'Lats, chest, triceps', 'skill', 5, ['bar']],

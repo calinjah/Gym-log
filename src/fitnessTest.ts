@@ -1,3 +1,4 @@
+import { MAX_LEVEL } from './library'
 import type { Exercise, FitnessTest, Pattern } from './types'
 
 /**
@@ -19,7 +20,7 @@ export const TESTS: { exerciseId: string; how: string; patterns: Pattern[] }[] =
  */
 export function levelFromMax(exercise: Exercise, max: number): number {
   const steps = exercise.measure === 'seconds' ? [1, 15, 30, 60] : [1, 6, 12, 20]
-  return Math.min(5, Math.max(1, exercise.level - 2 + steps.filter((s) => max >= s).length))
+  return Math.min(MAX_LEVEL, Math.max(1, exercise.level - 2 + steps.filter((s) => max >= s).length))
 }
 
 /** Level per movement from the starting test; movements it didn't cover are absent. */

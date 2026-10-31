@@ -25,7 +25,6 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
   const exercises = exerciseMap(data)
   const labels = supersetLabels(workout.entries)
-  const inWorkout = new Set(workout.entries.map((e) => e.exerciseId))
   // A hold remembers its set by position, so exercises and sets can't move or go while one runs.
   const holding = live && data.hold !== null
 
@@ -75,7 +74,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const swappable = !live || entry.sets.some((s) => !s.done)
         const swap = (to: Exercise) => edit((s) => (live ? swapExercise : replaceExercise)(s, i, to.id))
         const variation = (direction: Direction) =>
-          swappable ? swapTarget(entry, allExercises(data), data.equipment, inWorkout, direction) : null
+          swappable ? swapTarget(entry, allExercises(data), data.equipment, direction) : null
         const easier = variation('easier')
         const harder = variation('harder')
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'

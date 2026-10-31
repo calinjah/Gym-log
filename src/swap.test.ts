@@ -6,7 +6,7 @@ import type { Workout } from './types'
 
 const ALL = ['bar', 'rings', 'dip', 'band', 'weights'] as const
 const target = (w: Workout, i: number, direction: Direction) =>
-  swapTarget(w.entries[i], LIBRARY, [...ALL], new Set(w.entries.map((e) => e.exerciseId)), direction)?.id
+  swapTarget(w.entries[i], LIBRARY, [...ALL], direction)?.id
 /** Press Easier or Harder on exercise `i`, as the workout screen does. */
 const press = (w: Workout, i: number, direction: Direction) => {
   const id = target(w, i, direction)
@@ -74,6 +74,31 @@ describe('easier and harder during a workout', () => {
     // E.g. a repeated workout where Archer was swapped for Explosive after a set: the swap trail is gone.
     const w = session({ entries: [entry('lib-archer-pull-up', [set(5, 0, false)]), entry('lib-explosive-pull-up', [set(5, 0, false)], { supersetWithPrevious: true })] })
     expect(target(w, 1, 'harder')).toBe('lib-archer-pull-up')
+  })
+
+  it('merges with the same exercise right before it in the superset, rather than listing it twice', () => {
+    const w = session({ entries: [entry('lib-archer-pull-up', [set(5, 0, false)]), entry('lib-explosive-pull-up', [set(4, 0, false)], { supersetWithPrevious: true })] })
+    swapExercise(w, 1, 'lib-archer-pull-up')
+    expect(w.entries.map((e) => [e.exerciseId, e.sets.map((s) => s.reps)])).toEqual([['lib-archer-pull-up', [5, 4]]])
+  })
+
+  it('merges with the same exercise right after it in the superset too', () => {
+    const w = session({
+      entries: [entry('lib-explosive-pull-up', [set(4, 0, false)]), entry('lib-archer-pull-up', [set(5, 0, false)], { supersetWithPrevious: true }), entry('lib-plank', [set(30, 0, false)])],
+    })
+    swapExercise(w, 0, 'lib-archer-pull-up')
+    expect(w.entries.map((e) => [e.exerciseId, e.sets.map((s) => s.reps), e.supersetWithPrevious])).toEqual([
+      ['lib-archer-pull-up', [4, 5], false],
+      ['lib-plank', [30], false],
+    ])
+  })
+
+  it('steps Explosive, Archer and Typewriter Pull-ups one difficulty at a time', () => {
+    const at = (id: string) => session({ entries: [entry(id, [set(5, 0, false)])] })
+    expect(target(at('lib-explosive-pull-up'), 0, 'harder')).toBe('lib-archer-pull-up')
+    expect(target(at('lib-archer-pull-up'), 0, 'harder')).toBe('lib-typewriter-pull-up')
+    expect(target(at('lib-typewriter-pull-up'), 0, 'easier')).toBe('lib-archer-pull-up')
+    expect(target(at('lib-archer-pull-up'), 0, 'easier')).toBe('lib-explosive-pull-up')
   })
 
   it('refuses when every set is already done', () => {

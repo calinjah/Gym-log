@@ -6,15 +6,9 @@ export type Direction = 'easier' | 'harder'
 /**
  * What Easier or Harder swaps an exercise to: back to the exercise it was swapped
  * from when that lies in this direction (so Easier then Harder returns to where you started),
- * otherwise the next variation that way.
+ * otherwise the next variation that way, even one already in the workout.
  */
-export function swapTarget(
-  entry: ExerciseEntry,
-  exercises: Exercise[],
-  equipment: Equipment[],
-  inWorkout: Set<string>,
-  direction: Direction,
-): Exercise | null {
+export function swapTarget(entry: ExerciseEntry, exercises: Exercise[], equipment: Equipment[], direction: Direction): Exercise | null {
   const byId = new Map(exercises.map((e) => [e.id, e]))
   const find = (id: string) => {
     const e = byId.get(id)
@@ -27,7 +21,7 @@ export function swapTarget(
     const back = find(previous)
     if ((back.level - current.level) * (direction === 'harder' ? 1 : -1) > 0) return back
   }
-  return nextVariation(current, exercises, equipment, inWorkout, direction)
+  return nextVariation(current, exercises, equipment, new Set(), direction)
 }
 
 /**
@@ -46,19 +40,25 @@ export function swapExercise(w: Workout, i: number, exerciseId: string) {
 }
 
 /**
- * Change exercise `i` of a workout to another for all its sets, keeping the reps (weights reset). Swapping
- * back to the exercise it was split from during the workout rejoins that exercise.
+ * Change exercise `i` of a workout to another for all its sets, keeping the reps (weights reset). When the
+ * exercise linked right before or after it in a superset is that one, the sets join it instead, so it isn't
+ * listed twice in a row (this also rejoins an exercise split off during the workout).
  */
 export function replaceExercise(w: Workout, i: number, exerciseId: string) {
   const entry = w.entries[i]
   const sets = withoutWeight(entry.sets)
-  const origin = w.entries[i - 1]
-  if (entry.swappedFrom.at(-1) === exerciseId && entry.supersetWithPrevious && origin?.exerciseId === exerciseId) {
-    origin.sets.push(...sets)
+  const before = w.entries[i - 1]
+  const after = w.entries[i + 1]
+  if (entry.supersetWithPrevious && before?.exerciseId === exerciseId) {
+    before.sets.push(...sets)
     w.entries.splice(i, 1)
-    return
+  } else if (after?.supersetWithPrevious && after.exerciseId === exerciseId) {
+    after.sets.unshift(...sets)
+    after.supersetWithPrevious = entry.supersetWithPrevious
+    w.entries.splice(i, 1)
+  } else {
+    Object.assign(entry, { exerciseId, sets, swappedFrom: trail(entry, exerciseId) })
   }
-  Object.assign(entry, { exerciseId, sets, swappedFrom: trail(entry, exerciseId) })
 }
 
 const withoutWeight = (sets: SetEntry[]) => sets.map((s) => ({ ...s, weight: 0 }))

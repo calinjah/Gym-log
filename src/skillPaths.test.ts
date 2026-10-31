@@ -4,7 +4,7 @@ import { HOLD_TARGETS, pathProgress, REPS_TARGET, SKILL_PATHS } from './skillPat
 import { entry, session, set } from './test/fixtures'
 
 const byId = new Map(LIBRARY.map((e) => [e.id, e]))
-const pullUpPath = SKILL_PATHS.find((p) => p.name === 'Archer Pull-up')!
+const pullUpPath = SKILL_PATHS.find((p) => p.name === 'Typewriter Pull-up')!
 const frontLever = SKILL_PATHS.find((p) => p.name === 'Front Lever')!
 const logged = (id: string, ...reps: number[]) => session({ entries: [entry(id, reps.map((r) => set(r)))] })
 const states = (path: typeof pullUpPath, ...sessions: ReturnType<typeof logged>[]) => pathProgress(path, byId, sessions).map((s) => s.state)
@@ -26,15 +26,26 @@ describe('skill paths', () => {
       const earlier = path.steps.slice(0, -1).map((id) => byId.get(id)!.name.toLowerCase())
       expect(earlier, path.name).not.toContain(path.name.toLowerCase())
     }
-    expect(SKILL_PATHS.map((p) => p.name)).toContain('Archer Pull-up')
+    expect(SKILL_PATHS.map((p) => p.name)).toContain('Typewriter Pull-up')
+  })
+
+  it('climb pull-ups through Explosive and Archer to Typewriter', () => {
+    expect(pullUpPath.steps).toEqual([
+      'lib-band-assisted-pull-up',
+      'lib-negative-pull-up',
+      'lib-pull-up',
+      'lib-explosive-pull-up',
+      'lib-archer-pull-up',
+      'lib-typewriter-pull-up',
+    ])
   })
 
   it('start at the first step with no history', () => {
-    expect(states(pullUpPath)).toEqual(['current', 'later', 'later', 'later', 'later'])
+    expect(states(pullUpPath)).toEqual(['current', 'later', 'later', 'later', 'later', 'later'])
   })
 
   it('place you at the hardest step you have done, earlier ones counting as passed', () => {
-    expect(states(pullUpPath, logged('lib-pull-up', 8))).toEqual(['done', 'done', 'current', 'later', 'later'])
+    expect(states(pullUpPath, logged('lib-pull-up', 8))).toEqual(['done', 'done', 'current', 'later', 'later', 'later'])
   })
 
   it('count a step logged only at 0 as attempted, not reached', () => {
@@ -45,7 +56,7 @@ describe('skill paths', () => {
 
   it('move you on once a set reaches 12 reps', () => {
     expect(REPS_TARGET).toBe(12)
-    expect(states(pullUpPath, logged('lib-pull-up', 10), logged('lib-pull-up', 12))).toEqual(['done', 'done', 'done', 'current', 'later'])
+    expect(states(pullUpPath, logged('lib-pull-up', 10), logged('lib-pull-up', 12))).toEqual(['done', 'done', 'done', 'current', 'later', 'later'])
   })
 
   it('give each hold its own target: longer for basic holds, shorter for hard levers and planches', () => {
@@ -61,14 +72,13 @@ describe('skill paths', () => {
     expect(Object.keys(HOLD_TARGETS).sort()).toEqual([...new Set(timed)].sort())
   })
 
-  it('build pistols through the shrimp squat and archer pull-ups through the typewriter', () => {
+  it('build pistols through the shrimp squat', () => {
     const pistol = SKILL_PATHS.find((p) => p.name === 'Pistol Squat')!
     expect(pistol.steps).toContain('lib-shrimp-squat')
-    expect(pullUpPath.steps).toEqual(['lib-band-assisted-pull-up', 'lib-negative-pull-up', 'lib-pull-up', 'lib-typewriter-pull-up', 'lib-archer-pull-up'])
   })
 
   it('show your best set and mastery of the whole path', () => {
-    const progress = pathProgress(pullUpPath, byId, [logged('lib-pull-up', 6, 9, 7), logged('lib-archer-pull-up', 12)])
+    const progress = pathProgress(pullUpPath, byId, [logged('lib-pull-up', 6, 9, 7), logged('lib-typewriter-pull-up', 12)])
     expect(progress[2].best).toBe(9)
     expect(progress.every((s) => s.state === 'done')).toBe(true)
   })
