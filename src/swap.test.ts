@@ -70,6 +70,12 @@ describe('easier and harder during a workout', () => {
     ])
   })
 
+  it('Harder offers the next variation up even when it is already in the workout', () => {
+    // E.g. a repeated workout where Archer was swapped for Explosive after a set: the swap trail is gone.
+    const w = session({ entries: [entry('lib-archer-pull-up', [set(5, 0, false)]), entry('lib-explosive-pull-up', [set(5, 0, false)], { supersetWithPrevious: true })] })
+    expect(target(w, 1, 'harder')).toBe('lib-archer-pull-up')
+  })
+
   it('refuses when every set is already done', () => {
     const w = session({ entries: [entry('lib-pull-up', [set(5, 0, true)])] })
     expect(() => swapExercise(w, 0, 'lib-chin-up')).toThrow()
