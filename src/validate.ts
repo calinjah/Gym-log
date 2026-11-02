@@ -32,6 +32,11 @@ export function validateData(value: unknown): asserts value is Data {
   for (const id of Object.keys(data.fitnessTest?.results ?? {})) {
     if (!exerciseIds.has(id)) fail('fitnessTest.results', `uses an unknown exercise "${id}"`)
   }
+  if (data.hold) {
+    const { entry, set } = data.hold
+    if (!data.active) fail('hold', 'has no workout in progress')
+    if (!data.active.entries[entry]?.sets[set]) fail('hold', `points at a missing set (exercise ${entry + 1}, set ${set + 1})`)
+  }
 }
 
 type Check = (value: unknown, path: string) => void
