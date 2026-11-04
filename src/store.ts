@@ -166,9 +166,10 @@ export function sessionsWithExercise(data: Data, exerciseId: string): Session[] 
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
 }
 
+/** Whether any workout or plan names the exercise, including in a swap trail (the exercises an entry was swapped from). */
 export function isExerciseUsed(data: Data, exerciseId: string): boolean {
   const all = [...data.sessions, ...data.plans, ...(data.active ? [data.active] : [])]
-  return all.some((w) => w.entries.some((e) => e.exerciseId === exerciseId))
+  return all.some((w) => w.entries.some((e) => e.exerciseId === exerciseId || e.swappedFrom.includes(exerciseId)))
 }
 
 /** Begin a new in-progress workout, starting now, with a copy of the given exercises (all sets unticked). */

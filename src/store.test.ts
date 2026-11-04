@@ -175,6 +175,13 @@ describe('exercise usage and history', () => {
     expect(isExerciseUsed(d, 'lib-plank')).toBe(false)
   })
 
+  it('counts an exercise swapped away from as used: the swap trail still names it', () => {
+    const swapped = entry('lib-push-up', undefined, { swappedFrom: ['c1'] })
+    expect(isExerciseUsed(data({ active: session({ entries: [swapped] }) }), 'c1')).toBe(true)
+    expect(isExerciseUsed(data({ sessions: [session({ entries: [swapped] })] }), 'c1')).toBe(true)
+    expect(isExerciseUsed(data({ plans: [plan({ entries: [swapped] })] }), 'c1')).toBe(true)
+  })
+
   it('lists sessions with an exercise newest first', () => {
     const older = session({ startedAt: '2026-10-01T10:00:00.000Z' })
     const newer = session({ startedAt: '2026-10-05T10:00:00.000Z' })
