@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { LIBRARY, MAX_LEVEL } from './library'
+import { countsEachSide, LIBRARY, MAX_LEVEL } from './library'
 
 describe('exercise library', () => {
+  it('marks one-leg, one-arm and side-to-side exercises as counted each side', () => {
+    const named = (name: string) => LIBRARY.find((e) => e.name === name)!
+    for (const name of ['Pistol Squat', 'Bulgarian Split Squat', 'Single-leg Romanian Deadlift', 'One-arm Push-up', 'Archer Pull-up', 'Side Plank', 'Pigeon Stretch']) {
+      expect(countsEachSide(named(name)), name).toBe(true)
+    }
+    for (const name of ['Nordic Curl', 'Bodyweight Squat', 'Push-up', 'Pull-up', 'Plank']) expect(countsEachSide(named(name)), name).toBe(false)
+  })
+
   it('has unique ids and names', () => {
     expect(new Set(LIBRARY.map((e) => e.id)).size).toBe(LIBRARY.length)
     expect(new Set(LIBRARY.map((e) => e.name.toLowerCase())).size).toBe(LIBRARY.length)

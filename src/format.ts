@@ -1,3 +1,4 @@
+import { countsEachSide } from './library'
 import type { Exercise, Session, SetEntry, Unit } from './types'
 
 export function formatDate(iso: string): string {
@@ -23,6 +24,6 @@ export function formatDuration(session: Session): string {
 }
 
 export function formatSet(set: SetEntry, exercise: Exercise, unit: Unit): string {
-  const amount = exercise.measure === 'seconds' ? `${set.reps}s` : `${set.reps} reps`
+  const amount = (exercise.measure === 'seconds' ? `${set.reps}s` : `${set.reps} reps`) + (countsEachSide(exercise) ? ' each side' : '')
   return set.weight === 0 ? amount : `${set.weight} ${unit} × ${amount}`
 }

@@ -207,6 +207,19 @@ test.describe('rest timer and supersets', () => {
   })
 })
 
+test.describe('one side at a time', () => {
+  test('one-leg, one-arm and side-to-side exercises say the amount is for each side', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Pistol Squat')
+    await addExercise(page, 'Side Plank')
+    await addExercise(page, 'Nordic Curl')
+    await expect(page.locator('.entry').nth(0)).toContainText('Reps are for each side.')
+    await expect(page.locator('.entry').nth(1)).toContainText('Hold for this long on each side.')
+    await expect(page.locator('.entry').nth(2)).not.toContainText('each side') // both legs at once
+  })
+})
+
 test.describe('hold timer for timed sets', () => {
   test('get ready, hold, beep, and the set ticks itself and starts the rest', async ({ page }) => {
     await page.addInitScript(() => {

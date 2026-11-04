@@ -1,6 +1,7 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
 import { SECTION_NOTES } from '../generator'
+import { countsEachSide } from '../library'
 import { setDone, startHold } from '../sets'
 import { unlockAudio } from '../sound'
 import { beats, personalBest } from '../stats'
@@ -127,6 +128,9 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   </button>
                 </div>
               </div>
+              {countsEachSide(exercise) && (
+                <p className="muted small">{exercise.measure === 'seconds' ? 'Hold for this long on each side.' : 'Reps are for each side.'}</p>
+              )}
               {last && lastSets && (
                 <p className="muted small">
                   Last ({formatDate(last.startedAt)}): {lastSets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}

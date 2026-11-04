@@ -14,6 +14,14 @@ describe('formatting', () => {
     expect(formatSet(set(45), plank, 'lb')).toBe('45s')
   })
 
+  it('says "each side" for exercises done one side at a time', () => {
+    const pistol = LIBRARY.find((e) => e.id === 'lib-pistol-squat')!
+    const sidePlank = LIBRARY.find((e) => e.id === 'lib-side-plank')!
+    expect(formatSet(set(8), pistol, 'kg')).toBe('8 reps each side')
+    expect(formatSet(set(5, 10), pistol, 'kg')).toBe('10 kg × 5 reps each side')
+    expect(formatSet(set(30), sidePlank, 'kg')).toBe('30s each side')
+  })
+
   it('formats durations', () => {
     expect(formatDuration(session({ startedAt: '2026-10-07T17:00:00.000Z', finishedAt: '2026-10-07T17:45:00.000Z' }))).toBe('45 min')
     expect(formatDuration(session({ startedAt: '2026-10-07T17:00:00.000Z', finishedAt: '2026-10-07T18:05:00.000Z' }))).toBe('1 h 5 min')

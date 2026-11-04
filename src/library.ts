@@ -174,3 +174,41 @@ export const LIBRARY: Exercise[] = Object.entries(groups).flatMap(([category, ro
     equipment,
   })),
 )
+
+/** Done one leg or arm at a time (or side to side): the reps or seconds are for each side. */
+const EACH_SIDE = new Set(
+  [
+    'Archer Push-up',
+    'One-arm Push-up',
+    'Archer Pull-up',
+    'Typewriter Pull-up',
+    'Archer Ring Row',
+    'Split Squat',
+    'Bulgarian Split Squat',
+    'Walking Lunge',
+    'Reverse Lunge',
+    'Step-up',
+    'Cossack Squat',
+    'Shrimp Squat',
+    'Pistol Squat',
+    'Box Pistol Squat',
+    'Single-leg Glute Bridge',
+    'Single-leg Romanian Deadlift',
+    'Single-leg Calf Raise',
+    'Side Plank',
+    'Leg Swing',
+    'Overhead Triceps Stretch',
+    'Cross-body Shoulder Stretch',
+    'Biceps Wall Stretch',
+    'Standing Quad Stretch',
+    'Kneeling Hip Flexor Stretch',
+    'Pigeon Stretch',
+    'Calf Stretch',
+  ].map((name) => {
+    const exercise = LIBRARY.find((e) => e.name === name)
+    if (!exercise) throw new Error(`Unknown exercise ${name} counted each side`)
+    return exercise.id
+  }),
+)
+
+export const countsEachSide = (exercise: Exercise) => EACH_SIDE.has(exercise.id)
