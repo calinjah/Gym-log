@@ -1,6 +1,6 @@
 import { DEFAULT_REST, newId } from './store'
 import { testLevels } from './fitnessTest'
-import { MAX_LEVEL } from './library'
+import { countsEachSide, MAX_LEVEL } from './library'
 import type { DayType, Equipment, Exercise, ExerciseEntry, FitnessTest, Level, Pattern, Plan, Session } from './types'
 
 export type { DayType }
@@ -209,7 +209,11 @@ const clampLevel = (n: number) => Math.min(MAX_LEVEL, Math.max(1, n))
 const chunk = <T,>(items: T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, i * size + size))
 
-const workSeconds = (b: Block) => b.items.reduce((s, i) => s + (i.exercise.measure === 'seconds' ? i.amount : i.amount * SECONDS_PER_REP), 0)
+/** Seconds of work for one set: holds count their seconds, reps 3 s each; one-side-at-a-time exercises twice. */
+const setSeconds = (exercise: Exercise, amount: number) =>
+  (exercise.measure === 'seconds' ? amount : amount * SECONDS_PER_REP) * (countsEachSide(exercise) ? 2 : 1)
+
+const workSeconds = (b: Block) => b.items.reduce((s, i) => s + setSeconds(i.exercise, i.amount), 0)
 const blockSeconds = (b: Block) => b.sets * (workSeconds(b) + b.rest) + SETUP_SECONDS * b.items.length
 
 function amountForWarmup(measure: Exercise['measure']): number {
@@ -351,25 +355,41 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   while (sets > MIN_SETS && mainSeconds(mainItems) > budget) sets -= 1
   while (mainItems.length > 2 && mainSeconds(mainItems) > budget) mainItems.pop()
 
-  // Warm-up and stretches: one short circuit each for what this session actually trains, in training order.
-  const worked = [...(skill ? [skill] : []), ...mainItems.map((i) => i.exercise), ...coreItems.map((i) => i.exercise)]
-    .map((e) => e.pattern)
-    .filter((p): p is Trained => p !== null && p in STRETCH_FOR)
-  const warmupPatterns = worked.filter((p): p is Exclude<Trained, 'core'> => p in WARMUP_FOR)
-  const warmupItems = routineFor(WARMUP_FOR, warmupPatterns, WARMUP_SIZE, byId, settings.equipment).map(take)
-  const warmup: Block = { items: warmupItems, sets: 1, rest: WARMUP_REST, note: SECTION.warmup }
-  const stretchItems = routineFor(STRETCH_FOR, worked, STRETCH_SIZE, byId, settings.equipment).map(take)
-  const stretches: Block = { items: stretchItems, sets: 1, rest: STRETCH_REST, note: SECTION.stretch }
+  // Warm-up, ramp-up and stretches are chosen for the main work, then the whole session is checked against
+  // the time limit: one-side-at-a-time picks can make them longer than the time set aside for them. Over
+  // the limit, it does fewer stretches (down to one), then drops main exercises from the end.
+  const mainIds = new Set(dayIds)
+  let stretchCount = STRETCH_SIZE
+  const sessionBlocks = (): Block[] => {
+    dayIds.clear()
+    for (const id of mainIds) dayIds.add(id)
+    // Warm-up and stretches: one short circuit each for what this session actually trains, in training order.
+    const worked = [...(skill ? [skill] : []), ...mainItems.map((i) => i.exercise), ...coreItems.map((i) => i.exercise)]
+      .map((e) => e.pattern)
+      .filter((p): p is Trained => p !== null && p in STRETCH_FOR)
+    const warmupPatterns = worked.filter((p): p is Exclude<Trained, 'core'> => p in WARMUP_FOR)
+    const warmupItems = routineFor(WARMUP_FOR, warmupPatterns, WARMUP_SIZE, byId, settings.equipment).map(take)
+    const warmup: Block = { items: warmupItems, sets: 1, rest: WARMUP_REST, note: SECTION.warmup }
+    const stretchItems = routineFor(STRETCH_FOR, worked, stretchCount, byId, settings.equipment).map(take)
+    const stretches: Block = { items: stretchItems, sets: 1, rest: STRETCH_REST, note: SECTION.stretch }
 
-  // Ramp-up: an easier variation of each exercise in the first heavy superset, so it starts primed.
-  const main = mainBlocks(mainItems)
-  const rampUpItems =
-    spec.type === 'strength'
-      ? main[0].items.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take)
-      : []
-  const rampUp: Block = { items: rampUpItems, sets: 1, rest: RAMP_UP_REST, note: SECTION.rampUp }
+    // Ramp-up: an easier variation of each exercise in the first heavy superset, so it starts primed.
+    const main = mainBlocks(mainItems)
+    const rampUpItems =
+      spec.type === 'strength'
+        ? main[0].items.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take)
+        : []
+    const rampUp: Block = { items: rampUpItems, sets: 1, rest: RAMP_UP_REST, note: SECTION.rampUp }
+    return [warmup, ...(skillBlock ? [skillBlock] : []), rampUp, ...main, core, stretches].filter((b) => b.items.length > 0)
+  }
+  const overLimit = (blocks: Block[]) => blocks.reduce((s, b) => s + blockSeconds(b), 0) > settings.minutes * 60
+  let blocks = sessionBlocks()
+  while (overLimit(blocks) && (stretchCount > 1 || mainItems.length > 2)) {
+    if (stretchCount > 1) stretchCount -= 1
+    else mainItems.pop()
+    blocks = sessionBlocks()
+  }
 
-  const blocks = [warmup, ...(skillBlock ? [skillBlock] : []), rampUp, ...main, core, stretches].filter((b) => b.items.length > 0)
   return {
     id: newId(),
     name: `${FOCUS_NAMES[spec.focus]} · ${DAY_NAMES[spec.type]}`,
@@ -455,7 +475,7 @@ export function estimateMinutes(plan: Plan, exercises: Map<string, Exercise>): n
   plan.entries.forEach((entry, i) => {
     const exercise = exercises.get(entry.exerciseId)
     if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
-    const work = entry.sets.reduce((s, set) => s + (exercise.measure === 'seconds' ? set.reps : set.reps * SECONDS_PER_REP), 0)
+    const work = entry.sets.reduce((s, set) => s + setSeconds(exercise, set.reps), 0)
     const endsGroup = !plan.entries[i + 1]?.supersetWithPrevious
     seconds += work + SETUP_SECONDS + (endsGroup ? entry.sets.length * (entry.rest ?? DEFAULT_REST) : 0)
   })

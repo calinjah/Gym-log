@@ -42,6 +42,20 @@ const cases = WEEKS.flatMap((weekdays) =>
   ),
 )
 
+describe('session length estimate', () => {
+  it('counts both sides of a one-side-at-a-time exercise', () => {
+    const fourByTwenty = (exerciseId: string): Plan => ({
+      id: 'p',
+      name: 'P',
+      weekdays: [],
+      dayType: null,
+      entries: [{ exerciseId, sets: Array.from({ length: 4 }, () => ({ reps: 20, weight: 0, done: false })), notes: '', rest: 60, supersetWithPrevious: false, swappedFrom: [] }],
+    })
+    // 4 × 20 reps at 3 s a rep is 4 minutes of work; done on each leg, 8.
+    expect(estimateMinutes(fourByTwenty('lib-pistol-squat'), byId) - estimateMinutes(fourByTwenty('lib-bodyweight-squat'), byId)).toBe(4)
+  })
+})
+
 describe('programme generator rules', () => {
   it(`holds for all ${cases.length} generated weeks`, () => {
     for (const c of cases) {
@@ -77,7 +91,8 @@ describe('programme generator rules', () => {
         expect(main.length, at).toBeGreaterThanOrEqual(2)
         const has = (group: string[]) => main.some((e) => group.includes(e.pattern!))
         if (spec.focus !== 'lower') expect(has(PUSH), at).toBe(true)
-        if (spec.focus !== 'lower' && c.equipment.some((e) => ['bar', 'rings', 'dip'].includes(e))) expect(has(PULL), at).toBe(true)
+        // 45 minutes can be too short for a pull as well, once one-leg work counts both legs (user's choice).
+        if (spec.focus !== 'lower' && c.minutes >= 60 && c.equipment.some((e) => ['bar', 'rings', 'dip'].includes(e))) expect(has(PULL), at).toBe(true)
         if (spec.focus !== 'upper') expect(has(LEGS), at).toBe(true)
         if (spec.focus === 'upper') expect(has(LEGS), at).toBe(false)
         if (spec.focus === 'lower') expect(has(PUSH) || has(PULL), at).toBe(false)
@@ -120,10 +135,11 @@ describe('programme generator rules', () => {
       }
 
       // Weekly volume per muscle group never goes past 20 hard sets, and legs and hips always get work.
+      // One-leg exercises take twice as long, so 45-minute weeks can keep as few as 3 hip sets (user's choice).
       const weekly = weeklySets(week.map((d) => d.plan))
       expect(Math.max(...Object.values(weekly)), where).toBeLessThanOrEqual(20)
       expect(weekly.legs, where).toBeGreaterThanOrEqual(6)
-      expect(weekly.hips, where).toBeGreaterThanOrEqual(6)
+      expect(weekly.hips, where).toBeGreaterThanOrEqual(c.minutes >= 60 ? 6 : 3)
     }
   })
 
@@ -145,7 +161,8 @@ describe('programme generator rules', () => {
     const [strength] = generateProgramme(settings, [0, 3], seeded(2))
     const main = strength.plan.entries.filter((e) => !e.notes).map((e) => ({ e, ex: byId.get(e.exerciseId)! }))
     expect(main.every(({ e }) => e.sets.length === 3), 'cut from 4 sets to 3').toBe(true)
-    expect(new Set(main.map(({ ex }) => GROUP_OF[ex.pattern!]))).toEqual(new Set(['push', 'pull', 'legs', 'hips']))
+    // Counting both sides of one-leg exercises, 45 minutes then has room for three of the four groups.
+    expect(new Set(main.map(({ ex }) => GROUP_OF[ex.pattern!])).size).toBeGreaterThanOrEqual(3)
   })
 
   it('uses harder variations on strength days than on endurance days', () => {
