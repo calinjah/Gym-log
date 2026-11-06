@@ -18,6 +18,14 @@ test.describe('history and calendar stats', () => {
     await expect(page.locator('.calendar-day.today')).toHaveText('9')
   })
 
+  test('a workout dated in a later week (a slip on the date picker) doesn’t count as this week', async ({ page }) => {
+    const later = finished('s5', 'Next month', '2026-11-20T18:00:00+00:00', [entry('lib-pull-up', [{ reps: 8 }])])
+    await openApp(page, appData({ sessions: [...sessions, later] }))
+    await tab(page, 'History')
+    await expect(page.locator('.calendar-stats')).toContainText('3this week')
+    await expect(page.locator('.calendar-stats')).toContainText('3this month')
+  })
+
   test('tapping a day filters the list; show all clears it', async ({ page }) => {
     await openApp(page, appData({ sessions }))
     await tab(page, 'History')

@@ -23,7 +23,8 @@ export function TrainingCalendar({ sessions, isPlanned, isDeload, selectedDay, o
     perDay.set(key, (perDay.get(key) ?? 0) + 1)
   }
 
-  const thisWeek = sessions.filter((s) => new Date(s.startedAt) >= weekStart(today)).length
+  const week = dayKey(weekStart(today))
+  const thisWeek = sessions.filter((s) => dayKey(weekStart(new Date(s.startedAt))) === week).length
   const thisMonth = sessions.filter((s) => {
     const d = new Date(s.startedAt)
     return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()
