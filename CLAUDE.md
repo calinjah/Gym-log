@@ -27,6 +27,8 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 - An unused import fails `tsc -b`, which is part of the build the e2e web server runs: e2e then fails to start.
 - This environment can't fetch `*.github.io` (proxy 403): verify deploys via the Actions run.
 - Fixture `test` in `e2e/helpers.ts` fails on page errors; tests needing to observe crashes use `@playwright/test` directly.
+- `openApp` stores test data from `/icon.svg` (same origin, no app running), then opens `/`. Storing it from the app page let the app's own pending save overwrite it (`e2e/helpers.spec.ts` guards this).
+- If e2e can't launch Chromium ("Executable doesn't exist"), the sandbox's browser is for a newer Playwright than `package.json` pins: `npm i --no-save @playwright/test@<version of /opt/node-tools/node_modules/playwright>` (don't commit it).
 
 ## Data model
 
