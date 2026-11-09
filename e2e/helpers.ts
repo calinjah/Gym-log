@@ -71,12 +71,15 @@ export const planOf = (id: string, name: string, entries: unknown[], weekdays: n
   dayType,
 })
 
-/** Open the app at the fixed time with the given stored data (or none). */
+/**
+ * Open the app at the fixed time with the given stored data (or none).
+ * The data is stored from a static file on the same origin, so no running app can save over it.
+ */
 export async function openApp(page: Page, stored?: object) {
   await page.clock.install({ time: NOW })
-  await page.goto('/')
+  await page.goto('/icon.svg')
   await page.evaluate((json) => (json === null ? localStorage.clear() : localStorage.setItem('gym-data', json)), stored ? JSON.stringify(stored) : null)
-  await page.reload()
+  await page.goto('/')
   await expect(page.locator('h1')).toBeVisible()
 }
 
