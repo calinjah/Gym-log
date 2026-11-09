@@ -647,6 +647,16 @@ input[type='date']::-webkit-date-and-time-value {
   gap: 10px;
   border-color: var(--accent);
 }
+.today-plan .tag {
+  display: block;
+  width: fit-content;
+  margin: 6px 0 0;
+}
+.today-plan button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
 .weekdays {
   display: flex;
   flex-direction: column;

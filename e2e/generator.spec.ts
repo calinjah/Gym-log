@@ -199,6 +199,24 @@ test.describe('deload week', () => {
     await expect(page.getByText('Deload week workout: about half the sets, to recover.')).toBeVisible()
   })
 
+  test('on a narrow phone the deload tag sits on its own line and Start stays on one line', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 })
+    await openApp(page, appData({ plans: [programmeDay], programmeStart: '2026-09-10' }))
+    const card = page.locator('.today-plan')
+    const lines = (selector: string) => card.locator(selector).evaluate((el) => {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      return new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size
+    })
+    expect(await lines('button'), 'Start wraps').toBe(1)
+    expect(await lines('.tag'), 'deload week wraps').toBe(1)
+    const name = (await card.locator('strong').boundingBox())!
+    const tag = (await card.locator('.tag').boundingBox())!
+    expect(tag.y, 'deload week is not below the plan name').toBeGreaterThanOrEqual(name.y + name.height)
+    const text = (await card.locator('> span').first().boundingBox())!
+    expect(tag.x, 'deload week is not at the start of its line').toBe(text.x)
+  })
+
   test('History’s calendar shows the programme’s upcoming deload week', async ({ page }) => {
     await openApp(page, appData({ plans: [programmeDay], programmeStart: '2026-10-08' })) // week 5 is Mon 2 – Sun 8 Nov
     await tab(page, 'History')
