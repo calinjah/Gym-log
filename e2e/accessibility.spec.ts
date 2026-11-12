@@ -44,3 +44,29 @@ test('every control on every screen has a name a screen reader can read out', as
   await check('Settings')
   expect(problems).toEqual([])
 })
+
+/** WCAG contrast ratio between an element's text colour and its background colour. */
+async function contrast(page: Page, selector: string): Promise<number> {
+  return page.locator(selector).first().evaluate((el) => {
+    const luminance = (rgb: string) => {
+      const [r, g, b] = rgb.match(/[\d.]+/g)!.slice(0, 3).map((v) => {
+        const c = Number(v) / 255
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const style = getComputedStyle(el)
+    const [light, dark] = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => b - a)
+    return (light + 0.05) / (dark + 0.05)
+  })
+}
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  test(`text on the accent colour is easy to read in ${colorScheme} mode`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme })
+    await openApp(page, appData({ plans: [planOf('p', 'Push A', [entry('lib-push-up', [{ reps: 10 }])], [4], 'strength')] }))
+    // 4.5:1 is the accessibility guideline for normal-size text: the main buttons and the small "programme" tag.
+    expect(await contrast(page, 'button.primary')).toBeGreaterThanOrEqual(4.5)
+    expect(await contrast(page, '.tag')).toBeGreaterThanOrEqual(4.5)
+  })
+}
