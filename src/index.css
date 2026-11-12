@@ -285,8 +285,9 @@ input[type='date']::-webkit-date-and-time-value {
   width: 36px;
   color: var(--muted);
 }
-.sets td:last-child {
-  width: 44px;
+.sets td.tick-cell {
+  width: 1%; /* as narrow as its buttons */
+  padding-right: 0;
 }
 .num {
   text-align: center;
@@ -360,8 +361,17 @@ input[type='date']::-webkit-date-and-time-value {
   gap: 6px;
 }
 
-/* Done ticks */
+/* Done ticks: the main thing tapped mid-workout, so a big target */
+.ticks {
+  display: flex;
+  gap: 4px;
+}
+.ticks button {
+  min-height: 48px;
+}
 .tick {
+  width: 64px;
+  font-size: 1.2rem;
   color: var(--muted);
 }
 .tick.on {
@@ -830,4 +840,81 @@ input[type='date']::-webkit-date-and-time-value {
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Live workout: progress and Finish stay in reach while the exercises scroll underneath */
+.workout-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 -16px;
+  padding: 10px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.workout-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.workout-bar-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.workout-bar-name small {
+  color: var(--muted);
+}
+.progress {
+  height: 6px;
+  background: var(--border);
+}
+.progress div {
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Live workout: finished exercises, and single-set warm-ups and stretches, take one line */
+.entry-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  text-align: left;
+}
+.entry-row small {
+  color: var(--muted);
+}
+.entry-row.done {
+  justify-content: space-between;
+  min-height: 48px;
+  padding-right: 14px;
+}
+.entry-row.done strong {
+  font-weight: normal;
+}
+.entry-row.done small {
+  text-align: right;
+}
+.entry-row-name {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
 }

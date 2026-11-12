@@ -273,7 +273,7 @@ test.describe('automatic progression', () => {
   test('missing a target keeps that exercise the same', async ({ page }) => {
     await openApp(page, appData({ plans: [generated] }))
     await page.locator('.today-plan').getByRole('button', { name: 'Start' }).click()
-    await page.locator('.entry').nth(1).getByLabel('Set 2 reps').fill('4')
+    await page.locator('.entry').nth(0).getByLabel('Set 2 reps').fill('4') // Pull-up: the warm-up before it is a one-line row
     await page.getByRole('button', { name: 'Finish & save' }).click()
     await page.getByRole('button', { name: 'Yes, save them as done' }).click()
     await expect(page.locator('.next-time')).not.toContainText('Pull-up:')

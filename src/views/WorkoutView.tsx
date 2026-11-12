@@ -18,6 +18,7 @@ export function WorkoutView({ data, update }: Props) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [today] = useState(() => dayKey(new Date())) // read the clock once, not on every render
   const active = data.active
 
@@ -35,28 +36,47 @@ export function WorkoutView({ data, update }: Props) {
       update((d) => finishWorkout(d, keepUnticked))
       setConfirmingFinish(false)
     }
+    const askToFinish = () => (unticked > 0 ? setConfirmingFinish(true) : finish(true))
 
     return (
       <>
-        <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live>
-          <SessionDateField session={active} edit={editActive} />
-          {dayType && <p className="muted small">{active.deload ? DELOAD_EFFORT : EFFORT[dayType]}</p>}
-        </WorkoutEditor>
-        {confirmingFinish ? (
-          <div className="card form">
-            <p>
-              {unticked} of {sets.length} sets aren’t ticked. Did you do them?
-            </p>
-            <button autoFocus onClick={() => finish(true)}>
-              Yes, save them as done
+        <div className="workout-bar">
+          <div className="workout-bar-row">
+            <button className="workout-bar-name" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)}>
+              <strong>{active.name || 'Untitled workout'}</strong>
+              <small>
+                {sets.length - unticked} of {sets.length} sets
+              </small>
             </button>
-            <button className="danger" disabled={unticked === sets.length} onClick={() => finish(false)}>
-              No, leave them out
+            <button disabled={sets.length === 0} onClick={askToFinish}>
+              Finish
             </button>
-            <button onClick={() => setConfirmingFinish(false)}>Back to workout</button>
           </div>
-        ) : (
-          <div className="row actions">
+          <div className="progress">
+            <div style={{ width: `${sets.length === 0 ? 0 : Math.round(((sets.length - unticked) / sets.length) * 100)}%` }} />
+          </div>
+        </div>
+        {dayType && <p className="muted small">{active.deload ? DELOAD_EFFORT : EFFORT[dayType]}</p>}
+        <WorkoutEditor data={data} update={update} workout={active} edit={editActive} live showDetails={detailsOpen}>
+          <SessionDateField session={active} edit={editActive} />
+        </WorkoutEditor>
+        {confirmingFinish && (
+          <div className="modal" role="dialog">
+            <div className="modal-body form">
+              <p>
+                {unticked} of {sets.length} sets aren’t ticked. Did you do them?
+              </p>
+              <button autoFocus onClick={() => finish(true)}>
+                Yes, save them as done
+              </button>
+              <button className="danger" disabled={unticked === sets.length} onClick={() => finish(false)}>
+                No, leave them out
+              </button>
+              <button onClick={() => setConfirmingFinish(false)}>Back to workout</button>
+            </div>
+          </div>
+        )}
+        <div className="row actions">
             <button
               className="danger"
               onClick={() =>
@@ -70,15 +90,10 @@ export function WorkoutView({ data, update }: Props) {
             >
               Discard
             </button>
-            <button
-              className="primary"
-              disabled={sets.length === 0}
-              onClick={() => (unticked > 0 ? setConfirmingFinish(true) : finish(true))}
-            >
+            <button className="primary" disabled={sets.length === 0} onClick={askToFinish}>
               Finish & save
             </button>
           </div>
-        )}
       </>
     )
   }
@@ -99,6 +114,7 @@ export function WorkoutView({ data, update }: Props) {
           update={update}
           workout={plan}
           live={false}
+          showDetails
           edit={(mutate) =>
             update((d) => {
               const p = d.plans.find((x) => x.id === plan.id)

@@ -1,6 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
-import { SECTION_NOTES } from '../generator'
+import { SECTION, SECTION_NOTES } from '../generator'
 import { countsEachSide } from '../library'
 import { setDone, startHold } from '../sets'
 import { unlockAudio } from '../sound'
@@ -19,11 +19,18 @@ type Props = {
   workout: Workout
   edit: (mutate: (workout: Workout) => void) => void
   live: boolean // the workout in progress: sets can be ticked off, which starts the rest timer
+  showDetails: boolean // the name card (and its children); a live workout keeps it behind its top bar
   children?: ReactNode // extra fields under the name, e.g. the session date
 }
 
-export function WorkoutEditor({ data, update, workout, edit, live, children }: Props) {
+/** A live workout shows these as one-line rows while they have a single set: there is nothing to adjust mid-workout. */
+const ROUTINE_NOTES: ReadonlySet<string> = new Set([SECTION.warmup, SECTION.stretch])
+
+export function WorkoutEditor({ data, update, workout, edit, live, showDetails, children }: Props) {
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
+  // The one folded exercise (finished, or a one-line warm-up or stretch) opened as a full card. Positions shift
+  // when exercises move, so anything that reorders them closes it.
+  const [opened, setOpened] = useState<number | null>(null)
   const exercises = exerciseMap(data)
   const labels = supersetLabels(workout.entries)
   // A hold remembers its set by position, so exercises and sets can't move or go while one runs.
@@ -50,17 +57,19 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
 
   return (
     <div className="editor">
-      <div className="card form">
-        <label>
-          Workout name
-          <input
-            placeholder="e.g. Upper body"
-            value={workout.name}
-            onChange={(e) => edit((s) => void (s.name = e.target.value))}
-          />
-        </label>
-        {children}
-      </div>
+      {showDetails && (
+        <div className="card form">
+          <label>
+            Workout name
+            <input
+              placeholder="e.g. Upper body"
+              value={workout.name}
+              onChange={(e) => edit((s) => void (s.name = e.target.value))}
+            />
+          </label>
+          {children}
+        </div>
+      )}
 
       {workout.entries.map((entry, i) => {
         const label = labels[i]
@@ -73,13 +82,86 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
         const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
         // Swap to an easier or harder variation (or back): during a workout for the sets still to do, otherwise for all.
         const swappable = !live || entry.sets.some((s) => !s.done)
-        const swap = (to: Exercise) => edit((s) => (live ? swapExercise : replaceExercise)(s, i, to.id))
+        const swap = (to: Exercise) => {
+          edit((s) => (live ? swapExercise : replaceExercise)(s, i, to.id))
+          setOpened(null)
+        }
         const variation = (direction: Direction) =>
           swappable ? swapTarget(entry, allExercises(data), data.equipment, direction) : null
         const easier = variation('easier')
         const harder = variation('harder')
         const amountLabel = exercise.measure === 'seconds' ? 'Sec' : 'Reps'
         const pb = live ? personalBest(data, exercise.id) : null
+        const move = (to: number) => {
+          edit((s) => void s.entries.splice(to, 0, ...s.entries.splice(i, 1)))
+          setOpened(null)
+        }
+        const allDone = entry.sets.length > 0 && entry.sets.every((s) => s.done)
+        const routine = entry.sets.length === 1 && ROUTINE_NOTES.has(entry.notes.trim())
+        const foldable = live && (allDone || routine)
+        const name = (
+          <>
+            {label && <span className="superset-label">{label}</span>}
+            {exercise.name}
+          </>
+        )
+        const ticks = (set: SetEntry, j: number) => (
+          <div className="ticks">
+            <button
+              className={set.done ? 'icon tick on' : 'icon tick'}
+              aria-label={`Set ${j + 1} done`}
+              aria-pressed={set.done}
+              onClick={() => {
+                unlockAudio()
+                update((d) => setDone(d, i, j, !set.done, Date.now()))
+                setOpened(null)
+              }}
+            >
+              ✓
+            </button>
+            {exercise.measure === 'seconds' && !set.done && (
+              <button
+                className="icon"
+                aria-label={`Start set ${j + 1} hold`}
+                disabled={holding}
+                onClick={() => {
+                  unlockAudio()
+                  update((d) => startHold(d, i, j, Date.now()))
+                }}
+              >
+                ▶
+              </button>
+            )}
+          </div>
+        )
+
+        if (foldable && opened !== i && allDone)
+          return (
+            <button key={i} className="card entry-row done" onClick={() => setOpened(i)}>
+              <strong>✓ {name}</strong>
+              <small>
+                {entry.sets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}
+                {pb && entry.sets.some((set) => beats(set, pb)) && (
+                  <span className="pr" title="Personal best" aria-label="Personal best">
+                    🏆
+                  </span>
+                )}
+              </small>
+            </button>
+          )
+
+        if (foldable && opened !== i)
+          return (
+            <div key={i} className="card entry-row">
+              <button className="entry-row-name" onClick={() => setOpened(i)}>
+                <strong>{name}</strong>
+                <small>
+                  {entry.notes.trim()} · {formatSet(entry.sets[0], exercise, data.unit)}
+                </small>
+              </button>
+              {ticks(entry.sets[0], 0)}
+            </div>
+          )
 
         return (
           <Fragment key={i}>
@@ -97,16 +179,13 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
             )}
             <div className={label ? 'card entry in-superset' : 'card entry'}>
               <div className="entry-head">
-                <h3>
-                  {label && <span className="superset-label">{label}</span>}
-                  {exercise.name}
-                </h3>
+                <h3>{name}</h3>
                 <div className="row tight">
                   <button
                     className="icon"
                     aria-label="Move up"
                     disabled={i === 0 || holding}
-                    onClick={() => edit((s) => void s.entries.splice(i - 1, 0, ...s.entries.splice(i, 1)))}
+                    onClick={() => move(i - 1)}
                   >
                     ↑
                   </button>
@@ -114,7 +193,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                     className="icon"
                     aria-label="Move down"
                     disabled={i === workout.entries.length - 1 || holding}
-                    onClick={() => edit((s) => void s.entries.splice(i + 1, 0, ...s.entries.splice(i, 1)))}
+                    onClick={() => move(i + 1)}
                   >
                     ↓
                   </button>
@@ -122,7 +201,11 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                     className="icon danger"
                     aria-label="Remove exercise"
                     disabled={holding}
-                    onClick={() => confirm(`Remove ${exercise.name}?`) && edit((s) => void s.entries.splice(i, 1))}
+                    onClick={() => {
+                      if (!confirm(`Remove ${exercise.name}?`)) return
+                      edit((s) => void s.entries.splice(i, 1))
+                      setOpened(null)
+                    }}
                   >
                     ✕
                   </button>
@@ -158,7 +241,6 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                     <th>+{data.unit}</th>
                     <th>{amountLabel}</th>
                     {live && <th>Done</th>}
-                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -186,58 +268,33 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                           onChange={(v) => edit((s) => void (s.entries[i].sets[j].reps = v))}
                         />
                       </td>
-                      {live && (
-                        <td>
-                          <button
-                            className={set.done ? 'icon tick on' : 'icon tick'}
-                            aria-label={`Set ${j + 1} done`}
-                            aria-pressed={set.done}
-                            onClick={() => {
-                              unlockAudio()
-                              update((d) => setDone(d, i, j, !set.done, Date.now()))
-                            }}
-                          >
-                            ✓
-                          </button>
-                          {exercise.measure === 'seconds' && !set.done && (
-                            <button
-                              className="icon"
-                              aria-label={`Start set ${j + 1} hold`}
-                              disabled={holding}
-                              onClick={() => {
-                                unlockAudio()
-                                update((d) => startHold(d, i, j, Date.now()))
-                              }}
-                            >
-                              ▶
-                            </button>
-                          )}
-                        </td>
-                      )}
-                      <td>
-                        <button
-                          className="icon danger"
-                          aria-label={`Remove set ${j + 1}`}
-                          disabled={holding}
-                          onClick={() => edit((s) => void s.entries[i].sets.splice(j, 1))}
-                        >
-                          ✕
-                        </button>
-                      </td>
+                      {live && <td className="tick-cell">{ticks(set, j)}</td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <button
-                onClick={() =>
-                  edit((s) => {
-                    const sets = s.entries[i].sets
-                    sets.push(newSet(sets.length > 0 ? sets[sets.length - 1] : { reps: 10, weight: 0 }))
-                  })
-                }
-              >
-                + Add set
-              </button>
+              <div className="row">
+                <button
+                  disabled={holding || entry.sets.length === 0}
+                  onClick={() => {
+                    const last = entry.sets.length
+                    if (live && entry.sets[last - 1].done && !confirm(`Remove set ${last}? It is ticked as done.`)) return
+                    edit((s) => void s.entries[i].sets.pop())
+                  }}
+                >
+                  − Remove set
+                </button>
+                <button
+                  onClick={() =>
+                    edit((s) => {
+                      const sets = s.entries[i].sets
+                      sets.push(newSet(sets.length > 0 ? sets[sets.length - 1] : { reps: 10, weight: 0 }))
+                    })
+                  }
+                >
+                  + Add set
+                </button>
+              </div>
               <div className="entry-foot">
                 <input
                   className="notes"
@@ -259,6 +316,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, children }: P
                   </label>
                 )}
               </div>
+              {foldable && <button onClick={() => setOpened(null)}>Fold</button>}
             </div>
           </Fragment>
         )

@@ -4,6 +4,7 @@ test.describe('logging a workout', () => {
   test('start, add exercises and sets, finish, and see it in history', async ({ page }) => {
     await openApp(page)
     await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await page.getByRole('button', { name: 'Untitled workout' }).click() // the name sits behind the top bar
     await page.getByPlaceholder('e.g. Upper body').fill('Pull day')
     await addExercise(page, 'Pull-up')
     await page.getByLabel('Set 1 weight').fill('10')
@@ -150,6 +151,7 @@ test.describe('rest timer and supersets', () => {
     await openApp(page)
     await page.getByRole('button', { name: 'Start empty workout' }).click()
     await addExercise(page, 'Push-up')
+    await page.getByRole('button', { name: '+ Add set' }).click() // a set still to do keeps the exercise open
     await page.getByLabel('Set 1 done').click()
     await expect(page.getByRole('timer')).toBeVisible()
     await page.getByLabel('Set 1 done').click()
@@ -163,6 +165,8 @@ test.describe('rest timer and supersets', () => {
     await addExercise(page, 'Parallel Bar Dip')
     await page.getByRole('button', { name: '+ Link as superset' }).click()
     await expect(page.locator('.superset-label')).toHaveText(['A1', 'A2'])
+    // A second set each keeps both exercises open (finished ones fold away).
+    for (const i of [0, 1]) await page.locator('.entry').nth(i).getByRole('button', { name: '+ Add set' }).click()
 
     await page.locator('.entry').nth(0).getByLabel('Set 1 done').click()
     await expect(page.getByRole('timer')).toBeHidden()
@@ -190,7 +194,8 @@ test.describe('rest timer and supersets', () => {
     // Reads "Rest after round [60] s": the unit comes after the number.
     expect(await page.locator('.entry').nth(2).locator('.rest').evaluate((el) => el.lastChild?.textContent?.trim())).toBe('s')
 
-    // Rest starts only after the last exercise of the circuit.
+    // Rest starts only after the last exercise of the circuit. A second set each keeps them open.
+    for (const i of [0, 1, 2]) await page.locator('.entry').nth(i).getByRole('button', { name: '+ Add set' }).click()
     for (const i of [0, 1]) await page.locator('.entry').nth(i).getByLabel('Set 1 done').click()
     await expect(page.getByRole('timer')).toBeHidden()
     await page.locator('.entry').nth(2).getByLabel('Set 1 done').click()
@@ -245,7 +250,7 @@ test.describe('hold timer for timed sets', () => {
     await expect(timer).toContainText('Hold · Plank')
     await expect.poll(beeps).toBe(1)
     await page.clock.runFor(20_000)
-    await expect(page.getByLabel('Set 1 done')).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.entry-row.done')).toContainText('Plank') // ticked, so it folded away
     await expect(timer).toContainText('Rest') // the rest timer took over
     await expect.poll(beeps).toBe(4)
     expect((await saved(page)).active.entries[0].sets[0]).toEqual({ reps: 20, weight: 0, done: true })
@@ -312,7 +317,8 @@ test.describe('easier and harder variations', () => {
     await page.getByLabel('Set 1 done').click()
     await page.getByRole('button', { name: 'Skip' }).click()
     await page.getByRole('button', { name: 'Easier: Band-assisted Pull-up' }).click()
-    await expect(page.locator('.entry h3')).toHaveText(['A1Pull-up', 'A2Band-assisted Pull-up'])
+    await expect(page.locator('.entry-row.done')).toContainText('A1Pull-up') // its only set is done: folded
+    await expect(page.locator('.entry h3')).toHaveText(['A2Band-assisted Pull-up'])
     const entries = (await saved(page)).active.entries
     expect(entries.map((e: { exerciseId: string; sets: { done: boolean }[] }) => [e.exerciseId, e.sets.map((s) => s.done)])).toEqual([
       ['lib-pull-up', [true]],
@@ -353,7 +359,105 @@ test.describe('personal bests', () => {
     await addExercise(page, 'Pull-up')
     await page.getByLabel('Set 1 done').click()
     await expect(page.getByLabel('Personal best')).toHaveCount(0) // equal is not a new best
+    await page.locator('.entry-row.done').click() // reopen the folded exercise
     await page.getByLabel('Set 1 reps').fill('9')
     await expect(page.getByLabel('Personal best')).toHaveCount(1)
+    await page.getByRole('button', { name: 'Fold' }).click()
+    await expect(page.locator('.entry-row.done').getByLabel('Personal best')).toHaveCount(1) // the folded line keeps it
+  })
+})
+
+test.describe('a shorter live workout screen', () => {
+  test('progress and Finish stay at the top; the name and date open on a tap', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Push-up')
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    const bar = page.locator('.workout-bar')
+    await expect(bar).toContainText('0 of 2 sets')
+    await page.getByLabel('Set 1 done').click()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await expect(bar).toContainText('1 of 2 sets')
+    await expect(bar.locator('.progress div')).toHaveAttribute('style', 'width: 50%;')
+
+    await expect(page.getByPlaceholder('e.g. Upper body')).toBeHidden()
+    await bar.getByRole('button', { name: 'Untitled workout' }).click()
+    await page.getByPlaceholder('e.g. Upper body').fill('Push day')
+    await expect(page.getByLabel('Date')).toBeVisible()
+    await expect(bar).toContainText('Push day')
+
+    await bar.getByRole('button', { name: 'Finish', exact: true }).click()
+    await expect(page.getByText('1 of 2 sets aren’t ticked')).toBeInViewport()
+  })
+
+  test('a finished exercise folds to one line and reopens on a tap', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Push-up')
+    await page.getByLabel('Set 1 reps').fill('12')
+    await page.getByLabel('Set 1 done').click()
+    await expect(page.locator('.entry')).toHaveCount(0)
+    const line = page.locator('.entry-row.done')
+    await expect(line).toContainText('Push-up')
+    await expect(line).toContainText('12 reps')
+
+    await line.click()
+    await expect(page.getByLabel('Set 1 done')).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Fold' }).click()
+    await expect(page.locator('.entry')).toHaveCount(0)
+
+    // Reopened and unticked, it is an ordinary card again; ticking it folds it.
+    await line.click()
+    await page.getByLabel('Set 1 done').click()
+    await expect(page.getByRole('button', { name: 'Fold' })).toHaveCount(0)
+    await page.getByLabel('Set 1 done').click()
+    await expect(page.locator('.entry')).toHaveCount(0)
+  })
+
+  test('single-set warm-ups and stretches are one-line rows with their own tick', async ({ page }) => {
+    const plan = planOf('p1', 'Pulls', [
+      entry('lib-band-pull-apart', [{ reps: 12 }], { notes: 'Warm-up' }),
+      entry('lib-pull-up', [{ reps: 8 }, { reps: 8 }]),
+      entry('lib-chest-stretch', [{ reps: 30 }], { notes: 'Stretch' }),
+    ])
+    await openApp(page, appData({ plans: [plan] }))
+    await page.locator('.plan').getByRole('button', { name: 'Start' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
+    const rows = page.locator('.entry-row')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Warm-up · 12 reps')
+    await expect(rows.nth(1)).toContainText('Stretch · 30s')
+    await expect(rows.nth(1).getByRole('button', { name: 'Start set 1 hold' })).toBeVisible()
+
+    // Tapping the name opens the full card; Fold puts it back.
+    await rows.nth(0).getByRole('button', { name: /Band Pull-apart/ }).click()
+    await expect(page.getByLabel('Band Pull-apart notes')).toBeVisible()
+    await page.getByRole('button', { name: 'Fold' }).click()
+
+    await rows.nth(0).getByLabel('Set 1 done').click()
+    expect((await saved(page)).active.entries[0].sets[0].done).toBe(true)
+    await expect(page.locator('.entry-row.done')).toContainText('Band Pull-apart')
+  })
+
+  test('the tick is a big target and sets are removed from the end, not beside the tick', async ({ page }) => {
+    const dialogs = acceptDialogs(page)
+    await openApp(page)
+    await page.getByRole('button', { name: 'Start empty workout' }).click()
+    await addExercise(page, 'Push-up')
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    await page.getByRole('button', { name: '+ Add set' }).click()
+    const box = await page.getByLabel('Set 1 done').boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(60)
+    expect(box!.height).toBeGreaterThanOrEqual(48)
+    await expect(page.getByLabel(/^Remove set \d/)).toHaveCount(0)
+
+    await page.getByRole('button', { name: '− Remove set' }).click()
+    await expect(page.getByLabel('Set 3 done')).toHaveCount(0)
+    expect(dialogs).toEqual([]) // an unticked set goes without asking
+
+    await page.getByLabel('Set 2 done').click()
+    await page.getByRole('button', { name: '− Remove set' }).click()
+    expect(dialogs).toEqual(['Remove set 2? It is ticked as done.'])
+    expect((await saved(page)).active.entries[0].sets).toHaveLength(1)
   })
 })

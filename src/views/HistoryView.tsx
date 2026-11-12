@@ -43,7 +43,7 @@ export function HistoryView({ data, update, onStarted }: Props) {
         </div>
         {open.deload && <p className="muted small">Deload week workout: about half the sets, to recover.</p>}
         <p className="muted small">Changes to a past workout are saved automatically.</p>
-        <WorkoutEditor data={data} update={update} workout={open} edit={editOpen} live={false}>
+        <WorkoutEditor data={data} update={update} workout={open} edit={editOpen} live={false} showDetails>
           <SessionDateField session={open} edit={editOpen} />
         </WorkoutEditor>
         <button
