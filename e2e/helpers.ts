@@ -20,7 +20,7 @@ const ALL_EQUIPMENT = ['bar', 'rings', 'dip', 'band', 'weights']
 /** Current-version app data with overrides, in the shape the app stores. */
 export function appData(overrides: Record<string, unknown> = {}) {
   return {
-    version: 21,
+    version: 22,
     unit: 'kg',
     customExercises: [],
     plans: [],
@@ -46,6 +46,7 @@ export function appData(overrides: Record<string, unknown> = {}) {
 export const entry = (exerciseId: string, sets: { reps: number; weight?: number; done?: boolean }[], extra: Record<string, unknown> = {}) => ({
   exerciseId,
   sets: sets.map((s) => ({ reps: s.reps, weight: s.weight ?? 0, done: s.done ?? true })),
+  section: null,
   notes: '',
   rest: 90,
   supersetWithPrevious: false,

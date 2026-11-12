@@ -34,7 +34,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 
 ## Data model
 
-- `src/types.ts` `Data` is versioned (currently **21**). To change it: bump the version, add a step in `parseData` (`src/store.ts`), update `src/validate.ts` (full check of every field and reference), `src/test/fixtures.ts`, `e2e/helpers.ts` `appData`, the version assertions in tests, and add a migration test.
+- `src/types.ts` `Data` is versioned (currently **22**). To change it: bump the version, add a step in `parseData` (`src/store.ts`), update `src/validate.ts` (full check of every field and reference), `src/test/fixtures.ts`, `e2e/helpers.ts` `appData`, the version assertions in tests, and add a migration test.
 - `validateData` runs on import **and** on every app start; `RecoveryScreen` (error boundary) offers download/try again/reset if anything crashes.
 
 ## Decisions (and why)
@@ -52,7 +52,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 - **Each side:** `countsEachSide` (a list in `library.ts`, library exercises only; custom exercises can't be marked without a data change) adds "each side" to sets and a note in the editor, and session timing counts both sides (`setSeconds`). User trains 60 min and chose honest timing: 60-minute programmes are unchanged apart from the estimate (~4 min longer); 45-minute ones lose volume (hips can drop to 3 sets/week, a full-body day can lose its pull). The whole session is checked against the limit after the warm-up, ramp-up and stretches are chosen: over it, fewer stretches (down to 1), then main exercises dropped from the end.
 - **Live workout layout** (user approved a mock-up): a top bar that stays in view (name, sets done, progress line, Finish; the name and date fields open from it); finished exercises fold to one line; single-set warm-ups and stretches are one-line rows with their own tick (ramp-up sets stay full cards: they may need adjusting); one folded item at a time can be reopened (`opened`, by position, so anything that reorders exercises closes it). The tick is 64×48 with nothing destructive beside it: "− Remove set" removes the last set only (user accepted losing mid-list removal) and asks first if that set is ticked. No elapsed time in the bar: it would be wrong when the workout's date is changed.
 - Light-mode accent is `#0369a1` so white text on it passes 4.5:1 contrast (`e2e/accessibility.spec.ts` checks both colour schemes).
-- Generated plans store section labels (`SECTION`: Warm-up, Skill, Ramp-up, Core, Stretch) in entry `notes`; they are not user notes.
+- **Sections:** each entry has `section` (`warmup`, `skill`, `rampUp`, `core`, `stretch`, or null for the main work), set by the generator; `notes` is only what the user typed. The editor shows a heading wherever the section changes ("Main" for null) in any workout that has at least one section; the user's own plans have none. Until v22 the label was stored as the note, so typing a note took the exercise out of its section (user chose the data change over a display-only fix).
 
 ## Known limitations (not fixed, by decision)
 
@@ -62,7 +62,7 @@ Personal calisthenics workout tracker: Vite + React 19 + TypeScript (strict), da
 
 ## Ideas offered, not built
 
-UI (from a review of every screen): section labels (Warm-up, Core…) as headings instead of text in the Notes box; reorder/remove/Easier/Harder behind one "⋯" button so long names don't wrap; today's plan as the main action on the home screen with "Start empty workout" demoted; shorter plan cards (count, time, muscle groups); a calendar legend for planned and missed days; "under 1 min" instead of "0 min" in History; "Save a backup"/"Restore" instead of "Export/Import data (JSON)"; tab bar icons. How-to tips per exercise; effort (RIR) per set used by progression; workout summary on finish; weekly muscle-balance view; set types (warm-up/failure/drop); CSV export; linking skill paths to the generator's skill block; a native App Store build (Capacitor; needs a Mac and the $99/yr developer programme) mainly for a reliable lock-screen rest alert.
+UI (from a review of every screen): reorder/remove/Easier/Harder behind one "⋯" button so long names don't wrap; today's plan as the main action on the home screen with "Start empty workout" demoted; shorter plan cards (count, time, muscle groups); a calendar legend for planned and missed days; "under 1 min" instead of "0 min" in History; "Save a backup"/"Restore" instead of "Export/Import data (JSON)"; tab bar icons. How-to tips per exercise; effort (RIR) per set used by progression; workout summary on finish; weekly muscle-balance view; set types (warm-up/failure/drop); CSV export; linking skill paths to the generator's skill block; a native App Store build (Capacitor; needs a Mac and the $99/yr developer programme) mainly for a reliable lock-screen rest alert.
 
 ## Daily check
 

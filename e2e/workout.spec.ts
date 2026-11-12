@@ -83,7 +83,7 @@ test.describe('logging a workout', () => {
     await expect(page.getByLabel('Set 2 reps')).toHaveValue('7')
   })
 
-  test('shows the note you wrote last time for an exercise, but not a programme’s section labels', async ({ page }) => {
+  test('shows the note you wrote last time for an exercise, from the latest workout only', async ({ page }) => {
     await openApp(
       page,
       appData({
@@ -91,7 +91,7 @@ test.describe('logging a workout', () => {
           finished('s1', 'Old', '2026-10-01T18:00:00+01:00', [entry('lib-pull-up', [{ reps: 6 }], { notes: 'Old note' })]),
           finished('s2', 'Pull day', '2026-10-05T18:00:00+01:00', [
             entry('lib-pull-up', [{ reps: 8, weight: 5 }], { notes: 'Grip slipped on set 2, try chalk' }),
-            entry('lib-band-pull-apart', [{ reps: 12 }], { notes: 'Warm-up' }),
+            entry('lib-band-pull-apart', [{ reps: 12 }], { section: 'warmup' }),
             entry('lib-push-up', [{ reps: 10 }]),
           ]),
         ],
@@ -416,17 +416,17 @@ test.describe('a shorter live workout screen', () => {
 
   test('single-set warm-ups and stretches are one-line rows with their own tick', async ({ page }) => {
     const plan = planOf('p1', 'Pulls', [
-      entry('lib-band-pull-apart', [{ reps: 12 }], { notes: 'Warm-up' }),
+      entry('lib-band-pull-apart', [{ reps: 12 }], { section: 'warmup' }),
       entry('lib-pull-up', [{ reps: 8 }, { reps: 8 }]),
-      entry('lib-chest-stretch', [{ reps: 30 }], { notes: 'Stretch' }),
+      entry('lib-chest-stretch', [{ reps: 30 }], { section: 'stretch' }),
     ])
     await openApp(page, appData({ plans: [plan] }))
     await page.locator('.plan').getByRole('button', { name: 'Start' }).click()
     await expect(page.locator('.entry h3')).toHaveText(['Pull-up'])
     const rows = page.locator('.entry-row')
     await expect(rows).toHaveCount(2)
-    await expect(rows.nth(0)).toContainText('Warm-up · 12 reps')
-    await expect(rows.nth(1)).toContainText('Stretch · 30s')
+    await expect(rows.nth(0)).toContainText('12 reps')
+    await expect(rows.nth(1)).toContainText('30s')
     await expect(rows.nth(1).getByRole('button', { name: 'Start set 1 hold' })).toBeVisible()
 
     // Tapping the name opens the full card; Fold puts it back.
@@ -459,5 +459,57 @@ test.describe('a shorter live workout screen', () => {
     await page.getByRole('button', { name: '− Remove set' }).click()
     expect(dialogs).toEqual(['Remove set 2? It is ticked as done.'])
     expect((await saved(page)).active.entries[0].sets).toHaveLength(1)
+  })
+})
+
+test.describe('sections of a programme', () => {
+  const sectioned = planOf('p1', 'Full Body', [
+    entry('lib-band-pull-apart', [{ reps: 12 }], { section: 'warmup' }),
+    entry('lib-pull-up', [{ reps: 8 }, { reps: 8 }]),
+    entry('lib-push-up', [{ reps: 10 }, { reps: 10 }]),
+    entry('lib-plank', [{ reps: 30 }, { reps: 30 }], { section: 'core' }),
+    entry('lib-chest-stretch', [{ reps: 30 }], { section: 'stretch' }),
+  ])
+  const headings = ['Warm-up', 'Main', 'Core', 'Stretch']
+
+  test('sections are headings, and the notes box stays yours', async ({ page }) => {
+    await openApp(page, appData({ plans: [sectioned] }))
+    await page.locator('.plan').getByRole('button', { name: 'Edit' }).click()
+    await expect(page.locator('.section-heading')).toHaveText(headings)
+    await expect(page.getByLabel('Band Pull-apart notes')).toHaveValue('')
+    await page.getByRole('button', { name: '← Back' }).click()
+
+    await page.locator('.plan').getByRole('button', { name: 'Start' }).click()
+    await expect(page.locator('.section-heading')).toHaveText(headings)
+    const warmup = page.locator('.entry-row').first()
+    await expect(warmup).not.toContainText('Warm-up') // the heading says it
+    await warmup.getByRole('button', { name: /Band Pull-apart/ }).click()
+    await page.getByLabel('Band Pull-apart notes').fill('tight shoulders')
+    await page.getByRole('button', { name: 'Fold' }).click()
+    // A note doesn't take the exercise out of its section: still under Warm-up, still a one-line row.
+    await expect(page.locator('.section-heading')).toHaveText(headings)
+    await expect(page.locator('.entry-row')).toHaveCount(2)
+    expect((await saved(page)).active.entries[0]).toMatchObject({ section: 'warmup', notes: 'tight shoulders' })
+  })
+
+  test('a workout without sections has no headings', async ({ page }) => {
+    await openApp(page, appData({ plans: [planOf('p1', 'Pulls', [entry('lib-pull-up', [{ reps: 8 }]), entry('lib-push-up', [{ reps: 8 }])])] }))
+    await page.locator('.plan').getByRole('button', { name: 'Start' }).click()
+    await expect(page.locator('.entry h3')).toHaveText(['Pull-up', 'Push-up'])
+    await expect(page.locator('.section-heading')).toHaveCount(0)
+  })
+
+  test('data saved before sections existed is converted when the app opens', async ({ page }) => {
+    const old = (exerciseId: string, notes: string) => {
+      const { section: _, ...rest } = entry(exerciseId, [{ reps: 12 }], { notes })
+      return rest
+    }
+    const entries = [old('lib-band-pull-apart', 'Warm-up'), old('lib-pull-up', 'felt strong')]
+    await openApp(page, appData({ version: 21, plans: [planOf('p1', 'Old plan', entries)] }))
+    await page.locator('.plan').getByRole('button', { name: 'Edit' }).click()
+    await expect(page.locator('.section-heading')).toHaveText(['Warm-up', 'Main'])
+    await expect(page.getByLabel('Band Pull-apart notes')).toHaveValue('')
+    await expect(page.getByLabel('Pull-up notes')).toHaveValue('felt strong')
+    await expect.poll(async () => (await saved(page)).version).toBe(22)
   })
 })

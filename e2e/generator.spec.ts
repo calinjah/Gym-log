@@ -239,7 +239,7 @@ test.describe('automatic progression', () => {
     'gen',
     'Full Body · Strength',
     [
-      entry('lib-band-pull-apart', [{ reps: 12, done: false }], { notes: 'Warm-up' }),
+      entry('lib-band-pull-apart', [{ reps: 12, done: false }], { section: 'warmup' }),
       entry('lib-pull-up', [{ reps: 5, done: false }, { reps: 5, done: false }]),
       entry('lib-push-up', [{ reps: 8, done: false }, { reps: 8, done: false }]),
     ],

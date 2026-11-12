@@ -31,9 +31,13 @@ export type SetEntry = {
   done: boolean // ticked off during a live workout; finished sessions keep only done sets
 }
 
+/** The part of a generated session an exercise belongs to; the main work has none. */
+export type Section = 'warmup' | 'skill' | 'rampUp' | 'core' | 'stretch'
+
 export type ExerciseEntry = {
   exerciseId: string
   sets: SetEntry[]
+  section: Section | null // shown as a heading above the exercises; set by the programme generator
   notes: string
   rest: number // rest timer after each set, in seconds
   supersetWithPrevious: boolean // grouped with the exercise above; rest starts after the group's last exercise
@@ -71,7 +75,7 @@ export type Hold = {
 }
 
 export type Data = {
-  version: 21
+  version: 22
   unit: Unit
   customExercises: Exercise[]
   plans: Plan[]

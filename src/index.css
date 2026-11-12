@@ -842,6 +842,16 @@ input[type='date']::-webkit-date-and-time-value {
   text-underline-offset: 3px;
 }
 
+/* Sections of a generated session (Warm-up, Main, Core…) */
+.section-heading {
+  margin: 6px 0 -4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
 /* Live workout: progress and Finish stay in reach while the exercises scroll underneath */
 .workout-bar {
   position: sticky;

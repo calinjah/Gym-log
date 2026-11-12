@@ -12,7 +12,7 @@ export const LB_PER_KG = 2.20462
 export const DEFAULT_BEEP_VOLUME = 0.7
 
 const EMPTY: Data = {
-  version: 21,
+  version: 22,
   unit: 'kg',
   customExercises: [],
   plans: [],
@@ -104,7 +104,16 @@ export function parseData(json: string): Data {
   if (data.version === 18) data = { ...data, version: 19, preferRings: false } // v18 had no ring preference
   if (data.version === 19) data = { ...data, version: 20, pinnedThrough: null } // v19 did not save past days' plans
   if (data.version === 20) data = { ...data, version: 21, pastPlanNames: {} } // v20 dropped deleted plans from past days
-  if (data.version > 21) throw new Error('This file is from a newer version of the app: update the app first')
+  if (data.version === 21) {
+    // v21 kept a generated plan's section label ("Warm-up"…) as the exercise's notes.
+    const sections: Record<string, string> = { 'Warm-up': 'warmup', Skill: 'skill', 'Ramp-up': 'rampUp', Core: 'core', Stretch: 'stretch' }
+    const split = (e: RawEntry) => {
+      const section = sections[String(e.notes).trim()] ?? null
+      return { ...e, section, notes: section === null ? e.notes : '' }
+    }
+    data = { ...mapEntries(data, split), version: 22 }
+  }
+  if (data.version > 22) throw new Error('This file is from a newer version of the app: update the app first')
   validateData(data)
   return data
 }

@@ -1,4 +1,4 @@
-import { EQUIPMENT_LABELS, LEVEL_LABELS, PATTERN_LABELS } from './labels'
+import { EQUIPMENT_LABELS, LEVEL_LABELS, PATTERN_LABELS, SECTION_LABELS } from './labels'
 import { LEVEL_STEPS, LIBRARY } from './library'
 import type { Data, DayType, Measure, Unit } from './types'
 
@@ -95,9 +95,10 @@ const DAY_TYPES = Object.keys({ strength: 1, muscle: 1, endurance: 1 } satisfies
 const PATTERNS = Object.keys(PATTERN_LABELS)
 const EQUIPMENT = Object.keys(EQUIPMENT_LABELS)
 const LEVELS = Object.keys(LEVEL_LABELS)
+const SECTIONS = Object.keys(SECTION_LABELS)
 
 const SET = shape({ reps: number, weight: number, done: boolean })
-const ENTRY = shape({ exerciseId: text, sets: listOf(SET), notes: text, rest: number, supersetWithPrevious: boolean, swappedFrom: listOf(text) })
+const ENTRY = shape({ exerciseId: text, sets: listOf(SET), section: nullable(oneOf(...SECTIONS)), notes: text, rest: number, supersetWithPrevious: boolean, swappedFrom: listOf(text) })
 const WORKOUT = { id: text, name: text, entries: listOf(ENTRY) }
 const SESSION = { ...WORKOUT, planId: nullable(text), startedAt: timestamp, deload: boolean }
 const EXERCISE = shape({
@@ -113,7 +114,7 @@ const EXERCISE = shape({
 })
 
 const DATA = shape({
-  version: oneOf(21),
+  version: oneOf(22),
   unit: oneOf(...UNITS),
   customExercises: listOf(EXERCISE),
   plans: listOf(shape({ ...WORKOUT, weekdays: listOf(oneOf(0, 1, 2, 3, 4, 5, 6)), dayType: nullable(oneOf(...DAY_TYPES)) })),

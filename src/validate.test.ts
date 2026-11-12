@@ -40,11 +40,12 @@ describe('checking a data file', () => {
     ['a hold timer with no workout in progress', (d) => ({ ...d, active: null, hold: { entry: 0, set: 0, startsAt: 1, endsAt: 2 } }), 'hold has no workout in progress'],
     ['a hold timer on a set that isn’t there', (d) => ({ ...d, hold: { entry: 0, set: 5, startsAt: 1, endsAt: 2 } }), 'hold points at a missing set (exercise 1, set 6)'],
     ['a custom exercise with a made-up difficulty', (d) => ({ ...d, customExercises: [{ id: 'c', name: 'C', category: 'X', muscles: '', measure: 'reps', custom: true, pattern: null, level: 9, equipment: [] }] }), 'customExercises[0].level should be one of 1, 2, 3, 4, 5, 6'],
+    ['an exercise in a made-up section', (d) => ({ ...d, plans: [{ ...d.plans[0], entries: [{ ...d.plans[0].entries[0], section: 'Cooldown' }] }] }), 'plans[0].entries[0].section should be one of "warmup", "skill", "rampUp", "core", "stretch"'],
   ])('refuses %s, saying where', (_, corrupt, message) => {
     expect(() => parseData(json(corrupt(full())))).toThrow(`Not a valid gym data file: ${message}`)
   })
 
   it('explains a backup from a newer version of the app', () => {
-    expect(() => parseData(json({ ...full(), version: 22 }))).toThrow('newer version of the app')
+    expect(() => parseData(json({ ...full(), version: 23 }))).toThrow('newer version of the app')
   })
 })

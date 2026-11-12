@@ -7,6 +7,7 @@ export const set = (reps: number, weight = 0, done = true): SetEntry => ({ reps,
 export const entry = (exerciseId: string, sets: SetEntry[] = [set(8)], overrides: Partial<ExerciseEntry> = {}): ExerciseEntry => ({
   exerciseId,
   sets,
+  section: null,
   notes: '',
   rest: 90,
   supersetWithPrevious: false,
@@ -35,7 +36,7 @@ export const plan = (overrides: Partial<Plan> = {}): Plan => ({
 })
 
 export const data = (overrides: Partial<Data> = {}): Data => ({
-  version: 21,
+  version: 22,
   unit: 'kg',
   customExercises: [],
   plans: [],

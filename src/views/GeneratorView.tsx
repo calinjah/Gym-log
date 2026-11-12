@@ -3,7 +3,7 @@ import { alternative, amountFor, EFFORT, estimateMinutes, generateProgramme, reg
 import { StartingTest } from '../components/StartingTest'
 import { DELOAD_EVERY } from '../deload'
 import { dayKey } from '../format'
-import { EQUIPMENT_LABELS, LEVEL_LABELS } from '../labels'
+import { EQUIPMENT_LABELS, LEVEL_LABELS, SECTION_LABELS } from '../labels'
 import { allExercises, deletePlan, exerciseMap, type Update } from '../store'
 import { supersetLabels } from '../superset'
 import type { Data, Equipment, Level } from '../types'
@@ -188,14 +188,14 @@ export function GeneratorView({ data, update, onClose }: Props) {
                 if (!exercise) throw new Error(`Unknown exercise ${entry.exerciseId}`)
                 const canSwap = alternative(settings, exercise, new Set(plan.entries.map((e) => e.exerciseId))) !== null
                 return (
-                  <li key={k} className={entry.notes ? `gen-item ${entry.notes.toLowerCase()}` : 'gen-item'}>
+                  <li key={k} className={entry.section ? `gen-item ${SECTION_LABELS[entry.section].toLowerCase()}` : 'gen-item'}>
                     <span className="gen-label">{labels[k] ?? ''}</span>
                     <span className="gen-name">
                       {exercise.name}
                       <small>
                         {entry.sets.length}×{entry.sets[0].reps}
                         {exercise.measure === 'seconds' ? 's' : ''}
-                        {entry.notes && ` · ${entry.notes}`}
+                        {entry.section && ` · ${SECTION_LABELS[entry.section]}`}
                       </small>
                     </span>
                     <button className="icon" aria-label={`Swap ${exercise.name}`} disabled={!canSwap} onClick={() => swap(i, k)}>

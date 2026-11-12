@@ -1,6 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { formatDate, formatSet } from '../format'
-import { SECTION, SECTION_NOTES } from '../generator'
+import { SECTION_LABELS } from '../labels'
 import { countsEachSide } from '../library'
 import { setDone, startHold } from '../sets'
 import { unlockAudio } from '../sound'
@@ -23,9 +23,6 @@ type Props = {
   children?: ReactNode // extra fields under the name, e.g. the session date
 }
 
-/** A live workout shows these as one-line rows while they have a single set: there is nothing to adjust mid-workout. */
-const ROUTINE_NOTES: ReadonlySet<string> = new Set([SECTION.warmup, SECTION.stretch])
-
 export function WorkoutEditor({ data, update, workout, edit, live, showDetails, children }: Props) {
   const [picker, setPicker] = useState<'closed' | 'browse' | 'create'>('closed')
   // The one folded exercise (finished, or a one-line warm-up or stretch) opened as a full card. Positions shift
@@ -33,6 +30,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, showDetails, 
   const [opened, setOpened] = useState<number | null>(null)
   const exercises = exerciseMap(data)
   const labels = supersetLabels(workout.entries)
+  const sectioned = workout.entries.some((e) => e.section !== null)
   // A hold remembers its set by position, so exercises and sets can't move or go while one runs.
   const holding = live && data.hold !== null
 
@@ -46,6 +44,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, showDetails, 
       s.entries.push({
         exerciseId: exercise.id,
         sets: lastEntry ? lastEntry.sets.map(newSet) : [newSet({ reps: exercise.measure === 'seconds' ? 30 : 10, weight: 0 })],
+        section: null,
         notes: '',
         rest: lastEntry?.rest ?? DEFAULT_REST,
         supersetWithPrevious: false,
@@ -78,8 +77,7 @@ export function WorkoutEditor({ data, update, workout, edit, live, showDetails, 
         const last = sessionsWithExercise(data, exercise.id).find((s) => s.id !== workout.id)
         const lastEntry = last?.entries.find((e) => e.exerciseId === exercise.id)
         const lastSets = lastEntry?.sets
-        // What you noted last time (generated plans' section labels such as "Warm-up" aren't notes).
-        const lastNote = lastEntry && !SECTION_NOTES.has(lastEntry.notes.trim()) ? lastEntry.notes.trim() : ''
+        const lastNote = lastEntry ? lastEntry.notes.trim() : '' // what you noted last time
         // Swap to an easier or harder variation (or back): during a workout for the sets still to do, otherwise for all.
         const swappable = !live || entry.sets.some((s) => !s.done)
         const swap = (to: Exercise) => {
@@ -97,7 +95,12 @@ export function WorkoutEditor({ data, update, workout, edit, live, showDetails, 
           setOpened(null)
         }
         const allDone = entry.sets.length > 0 && entry.sets.every((s) => s.done)
-        const routine = entry.sets.length === 1 && ROUTINE_NOTES.has(entry.notes.trim())
+        // Warm-ups and stretches with a single set have nothing to adjust mid-workout: a live workout shows them as one-line rows.
+        const routine = entry.sets.length === 1 && (entry.section === 'warmup' || entry.section === 'stretch')
+        // A workout with sections gets a heading wherever the section changes; the exercises with none are the main work.
+        const heading = sectioned && (i === 0 || workout.entries[i - 1].section !== entry.section) && (
+          <h2 className="section-heading">{entry.section ? SECTION_LABELS[entry.section] : 'Main'}</h2>
+        )
         const foldable = live && (allDone || routine)
         const name = (
           <>
@@ -137,34 +140,39 @@ export function WorkoutEditor({ data, update, workout, edit, live, showDetails, 
 
         if (foldable && opened !== i && allDone)
           return (
-            <button key={i} className="card entry-row done" onClick={() => setOpened(i)}>
-              <strong>✓ {name}</strong>
-              <small>
-                {entry.sets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}
-                {pb && entry.sets.some((set) => beats(set, pb)) && (
-                  <span className="pr" title="Personal best" aria-label="Personal best">
-                    🏆
-                  </span>
-                )}
-              </small>
-            </button>
+            <Fragment key={i}>
+              {heading}
+              <button className="card entry-row done" onClick={() => setOpened(i)}>
+                <strong>✓ {name}</strong>
+                <small>
+                  {entry.sets.map((set) => formatSet(set, exercise, data.unit)).join(', ')}
+                  {pb && entry.sets.some((set) => beats(set, pb)) && (
+                    <span className="pr" title="Personal best" aria-label="Personal best">
+                      🏆
+                    </span>
+                  )}
+                </small>
+              </button>
+            </Fragment>
           )
 
         if (foldable && opened !== i)
           return (
-            <div key={i} className="card entry-row">
-              <button className="entry-row-name" onClick={() => setOpened(i)}>
-                <strong>{name}</strong>
-                <small>
-                  {entry.notes.trim()} · {formatSet(entry.sets[0], exercise, data.unit)}
-                </small>
-              </button>
-              {ticks(entry.sets[0], 0)}
-            </div>
+            <Fragment key={i}>
+              {heading}
+              <div className="card entry-row">
+                <button className="entry-row-name" onClick={() => setOpened(i)}>
+                  <strong>{name}</strong>
+                  <small>{formatSet(entry.sets[0], exercise, data.unit)}</small>
+                </button>
+                {ticks(entry.sets[0], 0)}
+              </div>
+            </Fragment>
           )
 
         return (
           <Fragment key={i}>
+            {heading}
             {i > 0 && (
               <button
                 className={linkedToPrevious(workout.entries, i) ? 'link-toggle on' : 'link-toggle'}

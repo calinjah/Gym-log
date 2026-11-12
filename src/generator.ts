@@ -1,7 +1,7 @@
 import { DEFAULT_REST, newId } from './store'
 import { testLevels } from './fitnessTest'
 import { countsEachSide, MAX_LEVEL } from './library'
-import type { DayType, Equipment, Exercise, ExerciseEntry, FitnessTest, Level, Pattern, Plan, Session } from './types'
+import type { DayType, Equipment, Exercise, ExerciseEntry, FitnessTest, Level, Pattern, Plan, Section, Session } from './types'
 
 export type { DayType }
 
@@ -194,15 +194,11 @@ const SETUP_SECONDS = 30 // moving to and setting up each exercise
 const WARMUP_SECONDS = WARMUP_SIZE * (amountForWarmup('reps') * SECONDS_PER_REP + SETUP_SECONDS) + WARMUP_REST
 const STRETCH_SECONDS = STRETCH_SIZE * (STRETCH_HOLD + SETUP_SECONDS) + STRETCH_REST
 
-/** Section labels generated plans keep in an exercise's notes (not notes you wrote). */
-export const SECTION = { warmup: 'Warm-up', skill: 'Skill', rampUp: 'Ramp-up', core: 'Core', stretch: 'Stretch' } as const
-export const SECTION_NOTES: ReadonlySet<string> = new Set(Object.values(SECTION))
-
 /** Strength days: one set of an easier variation of each exercise in the first superset, right before it. */
 const RAMP_UP_REST = 60
 const RAMP_UP_SECONDS = 2 * (SCHEME.strength.reps * SECONDS_PER_REP + SETUP_SECONDS) + RAMP_UP_REST
 
-type Block = { items: { exercise: Exercise; amount: number }[]; sets: number; rest: number; note: string }
+type Block = { items: { exercise: Exercise; amount: number }[]; sets: number; rest: number; section: Section | null }
 
 const clampLevel = (n: number) => Math.min(MAX_LEVEL, Math.max(1, n))
 
@@ -281,7 +277,8 @@ function toEntries(blocks: Block[], sessions: Session[]): ExerciseEntry[] {
     b.items.map((item, i) => ({
       exerciseId: item.exercise.id,
       sets: Array.from({ length: b.sets }, () => ({ reps: item.amount, weight: lastWeight(sessions, item.exercise.id), done: false })),
-      notes: b.note,
+      section: b.section,
+      notes: '',
       rest: b.rest,
       supersetWithPrevious: i > 0,
       swappedFrom: [],
@@ -313,7 +310,7 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
 
   // Skill practice while fresh, on strength days only.
   const skill = spec.type === 'strength' ? pick(settings, 'skill', clampLevel(levelFor('skill')), dayIds, weekIds, random) : null
-  const skillBlock: Block | null = skill && { items: [take(skill)], sets: 3, rest: 120, note: SECTION.skill }
+  const skillBlock: Block | null = skill && { items: [take(skill)], sets: 3, rest: 120, section: 'skill' }
 
   // Core finisher: one exercise on strength days, otherwise a pair mixing reps and a hold.
   const coreItems: Block['items'] = []
@@ -321,7 +318,7 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
     const core = pick(settings, 'core', clampLevel(levelFor('core')), dayIds, weekIds, random, coreItems[0]?.exercise.measure)
     if (core) coreItems.push(take(core))
   }
-  const core: Block = { items: coreItems, sets: 3, rest: 45, note: SECTION.core }
+  const core: Block = { items: coreItems, sets: 3, rest: 45, section: 'core' }
 
   // Main work: each muscle group's share of its weekly sets, within the time limit (sessions can end early).
   const scheme = SCHEME[spec.type]
@@ -333,8 +330,8 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
   const groupCount: Partial<Record<Group, number>> = {}
   const mainBlocks = (items: Block['items']): Block[] =>
     scheme.format === 'circuit'
-      ? chunk(items, CIRCUIT_SIZE).map((c) => ({ items: c, sets, rest: scheme.rest, note: '' }))
-      : chunk(items, 2).map((pair) => ({ items: pair, sets, rest: scheme.rest, note: '' }))
+      ? chunk(items, CIRCUIT_SIZE).map((c) => ({ items: c, sets, rest: scheme.rest, section: null }))
+      : chunk(items, 2).map((pair) => ({ items: pair, sets, rest: scheme.rest, section: null }))
   const mainSeconds = (items: Block['items']) => mainBlocks(items).reduce((s, b) => s + blockSeconds(b), 0)
   const mainItems: (Block['items'][number] & { rank: number })[] = []
   // Two passes over the patterns, so a group can get a second, different exercise.
@@ -369,9 +366,9 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
       .filter((p): p is Trained => p !== null && p in STRETCH_FOR)
     const warmupPatterns = worked.filter((p): p is Exclude<Trained, 'core'> => p in WARMUP_FOR)
     const warmupItems = routineFor(WARMUP_FOR, warmupPatterns, WARMUP_SIZE, byId, settings.equipment).map(take)
-    const warmup: Block = { items: warmupItems, sets: 1, rest: WARMUP_REST, note: SECTION.warmup }
+    const warmup: Block = { items: warmupItems, sets: 1, rest: WARMUP_REST, section: 'warmup' }
     const stretchItems = routineFor(STRETCH_FOR, worked, stretchCount, byId, settings.equipment).map(take)
-    const stretches: Block = { items: stretchItems, sets: 1, rest: STRETCH_REST, note: SECTION.stretch }
+    const stretches: Block = { items: stretchItems, sets: 1, rest: STRETCH_REST, section: 'stretch' }
 
     // Ramp-up: an easier variation of each exercise in the first heavy superset, so it starts primed.
     const main = mainBlocks(mainItems)
@@ -379,7 +376,7 @@ export function generateDay(settings: GeneratorSettings, spec: DaySpec, weekIds:
       spec.type === 'strength'
         ? main[0].items.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take)
         : []
-    const rampUp: Block = { items: rampUpItems, sets: 1, rest: RAMP_UP_REST, note: SECTION.rampUp }
+    const rampUp: Block = { items: rampUpItems, sets: 1, rest: RAMP_UP_REST, section: 'rampUp' }
     return [warmup, ...(skillBlock ? [skillBlock] : []), rampUp, ...main, core, stretches].filter((b) => b.items.length > 0)
   }
   const overLimit = (blocks: Block[]) => blocks.reduce((s, b) => s + blockSeconds(b), 0) > settings.minutes * 60
@@ -459,13 +456,14 @@ function generateMinimalDay(settings: GeneratorSettings, workout: 'A' | 'B', wee
 
   const worked = [...pairItems, ...legItems].map((i) => i.exercise.pattern).filter((p): p is Exclude<Trained, 'core' | 'skill'> => p !== null && p in WARMUP_FOR)
   const scheme = SCHEME[type]
-  const blocks: Block[] = [
-    { items: routineFor(WARMUP_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: WARMUP_REST, note: SECTION.warmup },
-    { items: pairItems.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take), sets: 1, rest: RAMP_UP_REST, note: SECTION.rampUp },
-    { items: pairItems, sets: scheme.sets, rest: scheme.rest, note: '' },
-    { items: legItems, sets: scheme.sets, rest: scheme.rest, note: '' },
-    { items: routineFor(STRETCH_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: STRETCH_REST, note: SECTION.stretch },
-  ].filter((b) => b.items.length > 0)
+  const all: Block[] = [
+    { items: routineFor(WARMUP_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: WARMUP_REST, section: 'warmup' },
+    { items: pairItems.flatMap((i) => easierThan(settings, i.exercise, dayIds, random) ?? []).map(take), sets: 1, rest: RAMP_UP_REST, section: 'rampUp' },
+    { items: pairItems, sets: scheme.sets, rest: scheme.rest, section: null },
+    { items: legItems, sets: scheme.sets, rest: scheme.rest, section: null },
+    { items: routineFor(STRETCH_FOR, worked, MINIMAL_ROUTINE_SIZE, byId, settings.equipment).map(take), sets: 1, rest: STRETCH_REST, section: 'stretch' },
+  ]
+  const blocks = all.filter((b) => b.items.length > 0)
   return { id: newId(), name: `Minimal ${workout}`, entries: toEntries(blocks, settings.sessions), weekdays: [], dayType: type }
 }
 

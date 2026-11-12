@@ -128,7 +128,7 @@ describe('finishWorkout', () => {
   })
 
   it('never progresses ramp-up sets', () => {
-    const p = plan({ id: 'gen', dayType: 'strength', entries: [entry('lib-push-up', sets(1, 5), { notes: 'Ramp-up' }), entry('lib-pull-up', sets(2, 5))] })
+    const p = plan({ id: 'gen', dayType: 'strength', entries: [entry('lib-push-up', sets(1, 5), { section: 'rampUp' }), entry('lib-pull-up', sets(2, 5))] })
     const d = data({ plans: [p] })
     startSession(d, 'Strength', p.entries, 'gen', false)
     for (const e of d.active!.entries) for (const s of e.sets) s.done = true

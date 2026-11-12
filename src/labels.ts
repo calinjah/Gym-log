@@ -1,4 +1,4 @@
-import type { Equipment, Level, Pattern } from './types'
+import type { Equipment, Level, Pattern, Section } from './types'
 
 export const PATTERN_LABELS: Record<Pattern, string> = {
   warmup: 'Warm-up',
@@ -10,6 +10,14 @@ export const PATTERN_LABELS: Record<Pattern, string> = {
   vpush: 'Vertical push / dip',
   hpull: 'Horizontal pull (row)',
   vpull: 'Vertical pull',
+  core: 'Core',
+  stretch: 'Stretch',
+}
+
+export const SECTION_LABELS: Record<Section, string> = {
+  warmup: 'Warm-up',
+  skill: 'Skill',
+  rampUp: 'Ramp-up',
   core: 'Core',
   stretch: 'Stretch',
 }

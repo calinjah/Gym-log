@@ -38,11 +38,12 @@ describe('parseData migrations', () => {
 
   it('upgrades v1 data all the way to the current version without losing anything', () => {
     const d = parseData(JSON.stringify(v1))
-    expect(d.version).toBe(21)
+    expect(d.version).toBe(22)
     expect(d.beepVolume).toBe(0.7)
     expect(d.sessions[0].entries[0]).toEqual({
       exerciseId: 'lib-push-up',
       sets: [{ reps: 10, weight: 0, done: true }],
+      section: null,
       notes: 'easy',
       rest: 90,
       supersetWithPrevious: false,
@@ -363,6 +364,38 @@ describe('v16 → v17', () => {
   })
 })
 
+describe('v21 → v22', () => {
+  it('moves section labels out of notes into their own field, and keeps the notes you wrote', () => {
+    const old = (notes: string) => {
+      const { section: _, ...rest } = entry('lib-push-up', [set(8)], { notes })
+      return rest
+    }
+    const entries = ['Warm-up', 'Skill', 'Ramp-up', 'Core', 'Stretch', ' Core ', 'easy', 'Core day felt good', ''].map(old)
+    const v21 = {
+      ...data(),
+      version: 21,
+      plans: [{ ...plan(), entries }],
+      sessions: [{ ...session(), entries }],
+      active: { ...session({ finishedAt: null }), entries },
+    }
+    const d = parseData(JSON.stringify(v21))
+    expect(d.version).toBe(22)
+    for (const workout of [d.plans[0], d.sessions[0], d.active!]) {
+      expect(workout.entries.map((e) => [e.section, e.notes])).toEqual([
+        ['warmup', ''],
+        ['skill', ''],
+        ['rampUp', ''],
+        ['core', ''],
+        ['stretch', ''],
+        ['core', ''],
+        [null, 'easy'],
+        [null, 'Core day felt good'],
+        [null, ''],
+      ])
+    }
+  })
+})
+
 describe('v15 → v16', () => {
   it('marks every existing workout as not a deload', () => {
     const strip = (s: ReturnType<typeof session>) => {
@@ -401,7 +434,7 @@ describe('v13 → v14', () => {
   it('adds the programme start date, unset until the programme is next saved', () => {
     const { programmeStart: _, fitnessTest: _t, ...v13 } = { ...data(), version: 13 }
     const d = parseData(JSON.stringify(v13))
-    expect(d.version).toBe(21)
+    expect(d.version).toBe(22)
     expect(d.programmeStart).toBeNull()
   })
 })
@@ -410,7 +443,7 @@ describe('v12 → v13', () => {
   it('drops the removed bodyweight log and keeps everything else', () => {
     const v12 = { ...data(), version: 12, bodyweight: [{ date: '2026-10-08', weight: 70 }], sessions: [session()] }
     const d = parseData(JSON.stringify(v12))
-    expect(d.version).toBe(21)
+    expect(d.version).toBe(22)
     expect('bodyweight' in d).toBe(false)
     expect(d.sessions).toHaveLength(1)
   })
